@@ -45,6 +45,10 @@ textarea {
   resize: vertical;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .site-header {
   position: sticky;
   top: 0;
@@ -201,6 +205,17 @@ main {
 .record-status {
   color: var(--sage);
   font-weight: 700;
+}
+
+.teacher-profile {
+  display: inline-flex;
+  margin: 0 0 1rem;
+  padding: 0.7rem 1rem;
+  color: var(--warm-brown);
+  background: rgba(255, 253, 248, 0.78);
+  border: 1px solid rgba(125, 86, 56, 0.14);
+  border-radius: 999px;
+  font-weight: 800;
 }
 
 .login-card,

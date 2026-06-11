@@ -7,30 +7,16 @@ import {
   signOut
 } from "firebase/auth";
 
-const defaultFirebaseConfig = {
-  apiKey: "AIzaSyC520udyHlWRXLZdViUG2GYYBYbVZ6coOA",
-  authDomain: "kolra2026-a51f6.firebaseapp.com",
-  databaseURL: "https://kolra2026-a51f6-default-rtdb.firebaseio.com",
-  projectId: "kolra2026-a51f6",
-  storageBucket: "kolra2026-a51f6.firebasestorage.app",
-  messagingSenderId: "142777126183",
-  appId: "1:142777126183:web:8ca502c661900735172d02"
-};
-
-function envValue(key, fallback) {
-  return import.meta.env[key] || fallback;
-}
-
-// Firebase 설정값은 Vite 환경변수(VITE_FIREBASE_*)를 우선 사용합니다.
+// Firebase 설정값은 .env의 Vite 환경변수(VITE_FIREBASE_*)에서 불러옵니다.
 // OpenAI API Key는 프론트엔드 코드 또는 Vite 클라이언트 환경변수에 두지 않습니다.
 export const firebaseConfig = {
-  apiKey: envValue("VITE_FIREBASE_API_KEY", defaultFirebaseConfig.apiKey),
-  authDomain: envValue("VITE_FIREBASE_AUTH_DOMAIN", defaultFirebaseConfig.authDomain),
-  databaseURL: envValue("VITE_FIREBASE_DATABASE_URL", defaultFirebaseConfig.databaseURL),
-  projectId: envValue("VITE_FIREBASE_PROJECT_ID", defaultFirebaseConfig.projectId),
-  storageBucket: envValue("VITE_FIREBASE_STORAGE_BUCKET", defaultFirebaseConfig.storageBucket),
-  messagingSenderId: envValue("VITE_FIREBASE_MESSAGING_SENDER_ID", defaultFirebaseConfig.messagingSenderId),
-  appId: envValue("VITE_FIREBASE_APP_ID", defaultFirebaseConfig.appId)
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const AUTH_STORAGE_KEY = "readingFluencyTeacherAuth";

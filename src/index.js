@@ -7,6 +7,7 @@ import {
 const loginButton = document.querySelector("#googleLoginButton");
 const logoutButton = document.querySelector("#logoutButton");
 const authMessage = document.querySelector("#authMessage");
+const teacherProfile = document.querySelector("#teacherProfile");
 const teacherActions = document.querySelector("#teacherActions");
 
 function renderAuthState(session) {
@@ -14,11 +15,15 @@ function renderAuthState(session) {
 
   loginButton.hidden = isSignedIn;
   logoutButton.hidden = !isSignedIn;
+  teacherProfile.hidden = !isSignedIn;
   teacherActions.hidden = !isSignedIn;
 
   authMessage.textContent = isSignedIn
     ? `${session.displayName} 선생님, 환영합니다.`
     : "교사 로그인이 필요합니다.";
+  teacherProfile.textContent = isSignedIn
+    ? `로그인 계정: ${session.displayName} / ${session.email || "이메일 정보 없음"}`
+    : "";
 }
 
 loginButton.addEventListener("click", async () => {
