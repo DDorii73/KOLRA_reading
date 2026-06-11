@@ -1,6 +1,9 @@
 import { requireTeacherAuth, saveAssessmentResult } from "./firebaseConfig.js";
 
 const teacherSession = requireTeacherAuth();
+if (!teacherSession) {
+  throw new Error("Teacher authentication required.");
+}
 
 const assessmentDate = document.querySelector("#assessmentDate");
 const passageInput = document.querySelector("#readingPassage");

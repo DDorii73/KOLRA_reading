@@ -1,6 +1,9 @@
 import { fetchAssessmentResults, requireTeacherAuth } from "./firebaseConfig.js";
 
-requireTeacherAuth();
+const teacherSession = requireTeacherAuth();
+if (!teacherSession) {
+  throw new Error("Teacher authentication required.");
+}
 
 const monitorTableBody = document.querySelector("#monitorTableBody");
 const selectedReport = document.querySelector("#selectedReport");
