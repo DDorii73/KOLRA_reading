@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>교사 모니터링 | 문단글 읽기 유창성</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <script type="module" src="src/admin.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="문단글 읽기 유창성 검사 도구 홈">
+      <span class="brand-mark">읽</span>
+      <span>
+        <strong>문단글 읽기 유창성</strong>
+        <small>교사 모니터링</small>
+      </span>
+    </a>
+    <nav class="top-nav" aria-label="주요 메뉴">
+      <a href="index.html">홈</a>
+      <a href="student.html">검사 시작</a>
+    </nav>
+  </header>
+
+  <main class="app-shell">
+    <section class="page-intro monitor-intro">
+      <div>
+        <p class="eyebrow">Teacher Dashboard</p>
+        <h1>학생별 검사 결과 모니터링</h1>
+        <p>
+          Firebase에 저장될 학생별 결과를 조회하고 읽기 속도, 오류 유형, 최종 점수와
+          보고서 내용을 한눈에 확인하는 페이지입니다.
+        </p>
+      </div>
+      <button class="button primary" id="refreshResultsButton" type="button">결과 새로고침</button>
+    </section>
+
+    <section class="summary-grid" aria-label="결과 요약">
+      <article class="summary-card">
+        <span>총 검사 수</span>
+        <strong id="totalAssessments">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>평균 읽기 속도</span>
+        <strong id="averageRate">-</strong>
+      </article>
+      <article class="summary-card">
+        <span>평균 점수</span>
+        <strong id="averageScore">-</strong>
+      </article>
+      <article class="summary-card">
+        <span>관심 필요 학생</span>
+        <strong id="needsSupport">0</strong>
+      </article>
+    </section>
+
+    <section class="panel wide-panel" aria-labelledby="monitor-table-title">
+      <div class="panel-header">
+        <div>
+          <p class="section-kicker">Saved Results</p>
+          <h2 id="monitor-table-title">학생별 분석 결과 표</h2>
+        </div>
+        <label class="search-box">
+          학생 검색
+          <input id="studentSearch" type="search" placeholder="이름 또는 학년 검색">
+        </label>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>학생</th>
+              <th>학년</th>
+              <th>검사일</th>
+              <th>읽기 속도</th>
+              <th>오류 수</th>
+              <th>최종 점수</th>
+              <th>보고서</th>
+            </tr>
+          </thead>
+          <tbody id="monitorTableBody">
+            <tr>
+              <td colspan="7">저장된 결과를 불러오면 이곳에 표시됩니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel report-preview" aria-labelledby="selected-report-title">
+      <div class="panel-header">
+        <div>
+          <p class="section-kicker">Individual Report</p>
+          <h2 id="selected-report-title">선택한 학생 보고서</h2>
+        </div>
+      </div>
+      <article id="selectedReport" class="report-paper">
+        <p>학생 결과 표에서 보고서 보기를 선택하면 상세 내용이 표시됩니다.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

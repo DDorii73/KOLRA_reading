@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학생 검사 | 문단글 읽기 유창성</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <script type="module" src="src/main.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="문단글 읽기 유창성 검사 도구 홈">
+      <span class="brand-mark">읽</span>
+      <span>
+        <strong>문단글 읽기 유창성</strong>
+        <small>검사 입력 페이지</small>
+      </span>
+    </a>
+    <nav class="top-nav" aria-label="주요 메뉴">
+      <a href="index.html">홈</a>
+      <a href="teacherMonitor.html">모니터링</a>
+    </nav>
+  </header>
+
+  <main class="app-shell">
+    <section class="page-intro">
+      <p class="eyebrow">Assessment Workspace</p>
+      <h1>학생 읽기 자료 입력 및 분석</h1>
+      <p>
+        검사자가 학생 정보, 읽기 지문, 전사 텍스트를 입력하면 읽기 속도와 오류 유형을
+        정리해 보고서 초안을 생성합니다.
+      </p>
+    </section>
+
+    <form class="workspace-grid" id="assessmentForm">
+      <section class="panel" aria-labelledby="student-info-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Step 1</p>
+            <h2 id="student-info-title">학생 정보</h2>
+          </div>
+        </div>
+        <div class="form-grid">
+          <label>
+            학생 이름
+            <input id="studentName" name="studentName" type="text" placeholder="예: 김민준" required>
+          </label>
+          <label>
+            학년
+            <select id="studentGrade" name="studentGrade" required>
+              <option value="">선택</option>
+              <option>1학년</option>
+              <option>2학년</option>
+              <option>3학년</option>
+              <option>4학년</option>
+              <option>5학년</option>
+              <option>6학년</option>
+            </select>
+          </label>
+          <label>
+            검사 날짜
+            <input id="assessmentDate" name="assessmentDate" type="date" required>
+          </label>
+          <label>
+            검사자
+            <input id="teacherName" name="teacherName" type="text" placeholder="교사 이름">
+          </label>
+        </div>
+      </section>
+
+      <section class="panel wide-panel" aria-labelledby="reading-material-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Step 2</p>
+            <h2 id="reading-material-title">읽기 자료와 전사 텍스트</h2>
+          </div>
+        </div>
+        <label>
+          제시 문단글
+          <textarea id="readingPassage" name="readingPassage" rows="8" placeholder="학생에게 제시한 문단글을 입력하세요." required></textarea>
+        </label>
+        <div class="text-meta">
+          <span>제시 글 어절 수: <strong id="passageWordCount">0</strong></span>
+          <span>저장 대상: 학생 정보, 검사 날짜, 전사 텍스트, 분석 결과</span>
+        </div>
+        <label>
+          STT 전사 텍스트
+          <textarea id="transcriptText" name="transcriptText" rows="8" placeholder="전사 파일을 업로드하거나 직접 입력하세요." required></textarea>
+        </label>
+        <div class="upload-row">
+          <label class="file-drop">
+            <input id="transcriptFile" type="file" accept=".txt,.vtt,.srt,text/plain">
+            <span>STT 전사파일 업로드</span>
+            <small>txt, vtt, srt 파일을 지원합니다.</small>
+          </label>
+          <div class="record-card">
+            <h3>브라우저 직접 녹음</h3>
+            <p>원본 녹음 파일은 Firebase에 저장하지 않습니다. 이 화면에서만 전사 흐름을 준비합니다.</p>
+            <div class="button-row">
+              <button class="button secondary" id="startRecordingButton" type="button">녹음 시작</button>
+              <button class="button ghost" id="stopRecordingButton" type="button" disabled>녹음 종료</button>
+              <button class="button ghost" id="convertRecordingButton" type="button" disabled>텍스트 변환</button>
+            </div>
+            <p class="record-status" id="recordStatus">대기 중</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="timing-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Step 3</p>
+            <h2 id="timing-title">읽기 시간</h2>
+          </div>
+        </div>
+        <div class="form-grid single-column">
+          <label>
+            읽기 시간(초)
+            <input id="readingSeconds" name="readingSeconds" type="number" min="1" placeholder="예: 72" required>
+          </label>
+          <label>
+            관찰 메모
+            <textarea id="teacherMemo" name="teacherMemo" rows="5" placeholder="검사 중 특이사항을 입력하세요."></textarea>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel wide-panel" aria-labelledby="analysis-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Step 4</p>
+            <h2 id="analysis-title">분석 결과</h2>
+          </div>
+          <button class="button primary" id="analyzeButton" type="button">분석하기</button>
+        </div>
+        <div class="result-cards">
+          <article>
+            <span>읽기 속도</span>
+            <strong id="readingRate">-</strong>
+            <small>어절/분</small>
+          </article>
+          <article>
+            <span>오류 수</span>
+            <strong id="errorCount">-</strong>
+            <small>추정 오류</small>
+          </article>
+          <article>
+            <span>최종 점수</span>
+            <strong id="fluencyScore">-</strong>
+            <small>100점 기준</small>
+          </article>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>오류 유형</th>
+                <th>설명</th>
+                <th>횟수</th>
+              </tr>
+            </thead>
+            <tbody id="errorTableBody">
+              <tr>
+                <td colspan="3">분석하기 버튼을 누르면 결과가 표시됩니다.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel wide-panel" aria-labelledby="report-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Step 5</p>
+            <h2 id="report-title">학생 개별 보고서</h2>
+          </div>
+          <button class="button secondary" id="saveResultButton" type="button">Firebase에 저장하기</button>
+        </div>
+        <textarea id="reportText" rows="10" placeholder="분석 결과를 바탕으로 보고서 초안이 생성됩니다."></textarea>
+        <p class="save-message" id="saveMessage" role="status">
+          현재 단계에서는 Firebase 저장 함수 구조만 준비되어 있습니다.
+        </p>
+      </section>
+    </form>
+  </main>
+</body>
+</html>

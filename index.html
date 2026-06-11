@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문단글 읽기 유창성 검사 도구</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <script type="module" src="src/index.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="문단글 읽기 유창성 검사 도구 홈">
+      <span class="brand-mark">읽</span>
+      <span>
+        <strong>문단글 읽기 유창성</strong>
+        <small>교사용 검사 보조 도구</small>
+      </span>
+    </a>
+    <nav class="top-nav" aria-label="주요 메뉴">
+      <a href="student.html" data-auth-link>검사 시작</a>
+      <a href="teacherMonitor.html" data-auth-link>모니터링</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Teacher Reading Fluency Assistant</p>
+        <h1>따뜻하고 간편한<br>문단글 읽기 유창성 검사 관리</h1>
+        <p class="hero-description">
+          교사가 학생 정보를 입력하고 전사 텍스트를 바탕으로 읽기 속도, 오류 유형,
+          최종 점수와 보고서를 한 곳에서 정리할 수 있도록 돕는 Web-app입니다.
+        </p>
+        <div class="hero-actions">
+          <button class="button primary" id="googleLoginButton" type="button">Google로 교사 로그인</button>
+          <button class="button ghost" id="logoutButton" type="button" hidden>로그아웃</button>
+        </div>
+        <p class="auth-message" id="authMessage" role="status">
+          교사용 Google 로그인 후 검사 페이지와 모니터링 페이지를 사용할 수 있습니다.
+        </p>
+      </div>
+
+      <aside class="login-card" aria-labelledby="login-card-title">
+        <div class="card-icon">☕</div>
+        <h2 id="login-card-title">교사용 인증</h2>
+        <p>
+          학생은 로그인하지 않습니다. Google 로그인은 검사자 또는 교사의 접근을
+          확인하기 위한 용도로만 사용됩니다.
+        </p>
+        <ul class="soft-list">
+          <li>학생 활동 페이지 접근 보호</li>
+          <li>교사 모니터링 페이지 접근 보호</li>
+          <li>Firebase 저장 구조 준비</li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="feature-grid" aria-label="주요 기능">
+      <article class="feature-card">
+        <span class="feature-number">01</span>
+        <h3>학생 정보 관리</h3>
+        <p>학생 이름, 학년, 검사일과 읽기 자료를 카드형 입력 영역에서 정리합니다.</p>
+      </article>
+      <article class="feature-card">
+        <span class="feature-number">02</span>
+        <h3>녹음 및 전사</h3>
+        <p>브라우저 녹음과 STT 전사 파일 업로드 흐름을 한 화면에 배치했습니다.</p>
+      </article>
+      <article class="feature-card">
+        <span class="feature-number">03</span>
+        <h3>유창성 분석</h3>
+        <p>읽기 속도, 오류 유형, 최종 점수와 보고서 생성 영역을 제공합니다.</p>
+      </article>
+      <article class="feature-card">
+        <span class="feature-number">04</span>
+        <h3>교사 모니터링</h3>
+        <p>Firebase에 저장될 학생별 검사 결과를 표와 요약 카드로 조회합니다.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
