@@ -1,47 +1,51 @@
 import {
   clearTeacherSession,
-  getTeacherSession,
-  signInWithGoogleForTeacher
+  signInWithGoogleForTeacher,
+  subscribeToTeacherAuth
 } from "./firebaseConfig.js";
 
 const loginButton = document.querySelector("#googleLoginButton");
 const logoutButton = document.querySelector("#logoutButton");
 const authMessage = document.querySelector("#authMessage");
-const protectedLinks = document.querySelectorAll("[data-auth-link]");
+const teacherActions = document.querySelector("#teacherActions");
 
-function renderAuthState() {
-  const session = getTeacherSession();
+function renderAuthState(session) {
   const isSignedIn = Boolean(session?.isTeacher);
 
   loginButton.hidden = isSignedIn;
   logoutButton.hidden = !isSignedIn;
-  authMessage.textContent = isSignedIn
-    ? `${session.displayName}님, 검사 페이지와 모니터링 페이지를 사용할 수 있습니다.`
-    : "교사용 Google 로그인 후 검사 페이지와 모니터링 페이지를 사용할 수 있습니다.";
+  teacherActions.hidden = !isSignedIn;
 
-  protectedLinks.forEach((link) => {
-    link.classList.toggle("disabled-link", !isSignedIn);
-    link.setAttribute("aria-disabled", String(!isSignedIn));
-  });
+  authMessage.textContent = isSignedIn
+    ? `${session.displayName} 선생님, 환영합니다.`
+    : "교사 로그인이 필요합니다.";
 }
 
 loginButton.addEventListener("click", async () => {
-  await signInWithGoogleForTeacher();
-  renderAuthState();
+  try {
+    loginButton.disabled = true;
+    authMessage.textContent = "Google 로그인 창을 확인해 주세요.";
+    const session = await signInWithGoogleForTeacher();
+    renderAuthState(session);
+  } catch (error) {
+    authMessage.textContent = "Google 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+    console.error(error);
+  } finally {
+    loginButton.disabled = false;
+  }
 });
 
-logoutButton.addEventListener("click", () => {
-  clearTeacherSession();
-  renderAuthState();
+logoutButton.addEventListener("click", async () => {
+  try {
+    logoutButton.disabled = true;
+    await clearTeacherSession();
+    renderAuthState(null);
+  } catch (error) {
+    authMessage.textContent = "로그아웃에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+    console.error(error);
+  } finally {
+    logoutButton.disabled = false;
+  }
 });
 
-protectedLinks.forEach((link) => {
-  link.addEventListener("click", (event) => {
-    if (!getTeacherSession()?.isTeacher) {
-      event.preventDefault();
-      authMessage.textContent = "먼저 교사용 Google 로그인을 진행해 주세요.";
-    }
-  });
-});
-
-renderAuthState();
+subscribeToTeacherAuth(renderAuthState);
