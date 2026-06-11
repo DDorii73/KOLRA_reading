@@ -1,4 +1,4 @@
-import { requireTeacherAuth, saveAssessmentResult } from "./firebaseConfig.js";
+import { requireTeacherAuth } from "./firebaseConfig.js";
 
 const teacherSession = requireTeacherAuth();
 if (!teacherSession) {
@@ -156,6 +156,8 @@ function compareTokens(passage, transcript) {
   const readTokens = transcript.trim().split(/\s+/).filter(Boolean);
   const maxLength = Math.max(sourceTokens.length, readTokens.length);
   const substitutions = [];
+  const omissionExamples = [];
+  const insertionExamples = [];
   let omissions = 0;
   let insertions = 0;
 
@@ -165,8 +167,10 @@ function compareTokens(passage, transcript) {
 
     if (source && !read) {
       omissions += 1;
+      omissionExamples.push(source);
     } else if (!source && read) {
       insertions += 1;
+      insertionExamples.push(read);
     } else if (source !== read) {
       substitutions.push({ expected: source, actual: read });
     }
@@ -176,27 +180,123 @@ function compareTokens(passage, transcript) {
     omissions,
     insertions,
     substitutions: substitutions.length,
-    details: substitutions.slice(0, 5)
+    examples: {
+      omission: omissionExamples.slice(0, 3),
+      insertion: insertionExamples.slice(0, 3),
+      substitution: substitutions.slice(0, 3)
+    }
   };
 }
 
-function createReport({ rate, totalErrors, score, errorTypes }) {
+function getFluencyLevel(score) {
+  if (score >= 90) return "안정적인 유창성 수준";
+  if (score >= 75) return "대체로 양호하나 일부 보완이 필요한 수준";
+  if (score >= 60) return "정확도와 속도에 대한 지속적인 지도가 필요한 수준";
+  return "집중적인 읽기 지원이 필요한 수준";
+}
+
+function getMainErrorType(errorTypes) {
+  const entries = [
+    ["생략", errorTypes.omissions],
+    ["삽입", errorTypes.insertions],
+    ["대치", errorTypes.substitutions]
+  ];
+  const [type, count] = entries.sort((a, b) => b[1] - a[1])[0];
+  return count > 0 ? `${type} 오류` : "두드러진 오류 없음";
+}
+
+function formatErrorExample(type, errorTypes) {
+  if (type === "생략") {
+    return errorTypes.examples.omission.length
+      ? `누락 추정: ${errorTypes.examples.omission.join(", ")}`
+      : "예시 없음";
+  }
+
+  if (type === "삽입") {
+    return errorTypes.examples.insertion.length
+      ? `추가 읽기: ${errorTypes.examples.insertion.join(", ")}`
+      : "예시 없음";
+  }
+
+  return errorTypes.examples.substitution.length
+    ? errorTypes.examples.substitution
+        .map(({ expected, actual }) => `${expected} → ${actual}`)
+        .join(", ")
+    : "예시 없음";
+}
+
+function createErrorRows(errorTypes) {
   return [
-    `읽기 속도는 분당 ${rate}어절로 산출되었습니다.`,
-    `전사 텍스트와 제시 문단글의 단순 비교 기준으로 총 ${totalErrors}개의 오류가 추정되었습니다.`,
-    `오류 유형은 생략 ${errorTypes.omissions}회, 삽입 ${errorTypes.insertions}회, 대치 ${errorTypes.substitutions}회입니다.`,
-    `최종 유창성 점수는 ${score}점입니다.`,
-    "이 보고서는 교사용 검토 초안이며, 실제 판정은 검사자의 관찰과 전문적 판단을 함께 반영해야 합니다."
+    {
+      type: "생략",
+      count: errorTypes.omissions,
+      transcriptExample: formatErrorExample("생략", errorTypes),
+      interpretation: "제시 문단의 일부 어절을 건너뛰었을 가능성이 있습니다.",
+      guidance: "짧은 의미 단위로 끊어 읽고 빠뜨린 어절을 다시 확인하는 활동을 권장합니다."
+    },
+    {
+      type: "삽입",
+      count: errorTypes.insertions,
+      transcriptExample: formatErrorExample("삽입", errorTypes),
+      interpretation: "원문에 없는 어절을 추가해 읽었을 가능성이 있습니다.",
+      guidance: "눈으로 원문을 따라가며 정확히 읽는 연습과 손가락 짚어 읽기를 활용합니다."
+    },
+    {
+      type: "대치",
+      count: errorTypes.substitutions,
+      transcriptExample: formatErrorExample("대치", errorTypes),
+      interpretation: "비슷한 형태나 의미의 어절로 바꾸어 읽었을 가능성이 있습니다.",
+      guidance: "혼동한 어절을 비교하고 문맥 속에서 정확한 낱말을 확인하도록 지도합니다."
+    }
+  ];
+}
+
+function createReport({ formData, rate, totalErrors, score, errorTypes }) {
+  const mainErrorType = getMainErrorType(errorTypes);
+  const fluencyLevel = getFluencyLevel(score);
+
+  return [
+    "[학생 기본 정보]",
+    `- 학생 이름: ${formData.studentName || "미입력"}`,
+    `- 학년/반: ${formData.gradeClass || "미입력"}`,
+    `- 생년월일: ${formData.birthDate || "미입력"}`,
+    `- 검사일: ${formData.assessmentDate || "미입력"}`,
+    `- 생활연령: ${formData.chronologicalAge || "미계산"}`,
+    `- 검사 문단: ${formData.passageTitle || "미선택"}`,
+    "",
+    "[읽기 속도 결과]",
+    `- 분당 ${rate}어절로 산출되었습니다.`,
+    "",
+    "[주요 오류 유형]",
+    `- ${mainErrorType}이 주요하게 관찰됩니다.`,
+    `- 총 오류 수는 ${totalErrors}회입니다. 생략 ${errorTypes.omissions}회, 삽입 ${errorTypes.insertions}회, 대치 ${errorTypes.substitutions}회입니다.`,
+    "",
+    "[유창성 수준 요약]",
+    `- 최종 점수는 ${score}점이며, ${fluencyLevel}으로 요약할 수 있습니다.`,
+    "",
+    "[강점]",
+    "- 문단글을 끝까지 읽고 전사 자료를 바탕으로 분석할 수 있는 읽기 수행 자료가 확보되었습니다.",
+    rate >= 80 ? "- 읽기 속도는 현재 문단 수준에서 비교적 안정적으로 나타납니다." : "- 일부 구간에서 천천히 읽더라도 정확하게 확인하려는 모습이 강점이 될 수 있습니다.",
+    "",
+    "[보완이 필요한 점]",
+    totalErrors > 0
+      ? `- ${mainErrorType}과 관련된 정확도 점검이 필요합니다.`
+      : "- 현재 단순 비교 기준에서는 뚜렷한 오류가 많지 않으므로 억양, 쉼, 자연스러움도 함께 관찰합니다.",
+    "",
+    "[지도 제안]",
+    "- 문장 단위보다 짧은 의미 단위로 끊어 읽고, 읽은 뒤 원문과 전사 텍스트를 함께 비교합니다.",
+    "- 오류가 반복되는 어절은 다시 읽기, 따라 읽기, 문맥 속 낱말 확인 활동으로 지도합니다."
   ].join("\n");
 }
 
-function analyzeReadingFluency({ passage, transcript, seconds }) {
+function analyzeReadingFluency(formData) {
   // TODO: Move advanced OpenAI-assisted analysis to Firebase Functions.
-  const wordCount = countWords(passage);
-  const rate = calculateReadingRate(wordCount, Number(seconds));
-  const errorTypes = compareTokens(passage, transcript);
+  const wordCount = countWords(formData.passage);
+  const rate = calculateReadingRate(wordCount, Number(formData.seconds));
+  const errorTypes = compareTokens(formData.passage, formData.transcript);
   const totalErrors = errorTypes.omissions + errorTypes.insertions + errorTypes.substitutions;
   const score = Math.max(0, Math.min(100, Math.round(100 - totalErrors * 3 + Math.min(rate, 160) * 0.08)));
+  const errorRows = createErrorRows(errorTypes);
 
   return {
     wordCount,
@@ -204,7 +304,8 @@ function analyzeReadingFluency({ passage, transcript, seconds }) {
     totalErrors,
     score,
     errorTypes,
-    report: createReport({ rate, totalErrors, score, errorTypes })
+    errorRows,
+    report: createReport({ formData, rate, totalErrors, score, errorTypes })
   };
 }
 
@@ -214,18 +315,14 @@ function renderAnalysis(analysis) {
   fluencyScore.textContent = analysis.score;
   reportText.value = analysis.report;
 
-  const rows = [
-    ["생략", "제시 글에 있으나 전사 텍스트에서 누락된 어절", analysis.errorTypes.omissions],
-    ["삽입", "제시 글에는 없으나 전사 텍스트에 추가된 어절", analysis.errorTypes.insertions],
-    ["대치", "같은 위치에서 서로 다르게 읽힌 어절", analysis.errorTypes.substitutions]
-  ];
-
-  errorTableBody.innerHTML = rows
-    .map(([type, description, count]) => `
+  errorTableBody.innerHTML = analysis.errorRows
+    .map((row) => `
       <tr>
-        <td>${type}</td>
-        <td>${description}</td>
-        <td>${count}</td>
+        <td>${escapeHtml(row.type)}</td>
+        <td>${escapeHtml(row.count)}</td>
+        <td>${escapeHtml(row.transcriptExample)}</td>
+        <td>${escapeHtml(row.interpretation)}</td>
+        <td>${escapeHtml(row.guidance)}</td>
       </tr>
     `)
     .join("");
@@ -236,6 +333,7 @@ function getFormData() {
 
   return {
     studentName: document.querySelector("#studentName").value.trim(),
+    gradeClass: document.querySelector("#gradeClass").value.trim(),
     birthDate: birthDate.value,
     chronologicalAge: chronologicalAge.value,
     assessmentDate: assessmentDate.value,
@@ -248,6 +346,36 @@ function getFormData() {
     seconds: Number(readingSeconds.value),
     memo: document.querySelector("#teacherMemo").value.trim()
   };
+}
+
+function buildAnalysisResultData(formData, analysis) {
+  return {
+    teacherUid: teacherSession?.uid || "",
+    teacherEmail: teacherSession?.email || "",
+    studentName: formData.studentName,
+    gradeClass: formData.gradeClass,
+    testDate: formData.assessmentDate,
+    passageTitle: formData.passageTitle,
+    transcriptText: formData.transcript,
+    readingSpeed: analysis.readingRate,
+    errorAnalysis: analysis.errorRows,
+    finalScore: analysis.score,
+    reportText: reportText.value.trim(),
+    createdAt: new Date().toISOString()
+  };
+}
+
+function saveAnalysisResult() {
+  const formData = getFormData();
+
+  if (!latestAnalysis) {
+    saveMessage.textContent = "저장 전 분석하기를 먼저 실행해 주세요.";
+    return;
+  }
+
+  const analysisResultData = buildAnalysisResultData(formData, latestAnalysis);
+  console.log("Firestore 저장 예정 데이터:", analysisResultData);
+  saveMessage.textContent = "저장 예정 데이터를 콘솔에서 확인할 수 있습니다.";
 }
 
 async function requestTranscriptionFromServer() {
@@ -342,26 +470,7 @@ analyzeButton.addEventListener("click", () => {
   saveMessage.textContent = "분석 결과가 생성되었습니다. 필요하면 보고서 내용을 수정한 뒤 저장하세요.";
 });
 
-saveResultButton.addEventListener("click", async () => {
-  const formData = getFormData();
-
-  if (!latestAnalysis) {
-    saveMessage.textContent = "저장 전 분석하기를 먼저 실행해 주세요.";
-    return;
-  }
-
-  const savedResult = await saveAssessmentResult({
-    ...formData,
-    transcriptText: formData.transcript,
-    readingRate: latestAnalysis.readingRate,
-    errorAnalysis: latestAnalysis.errorTypes,
-    totalErrors: latestAnalysis.totalErrors,
-    finalScore: latestAnalysis.score,
-    report: reportText.value.trim()
-  });
-
-  saveMessage.textContent = `${savedResult.studentName} 학생의 분석 결과가 저장되었습니다.`;
-});
+saveResultButton.addEventListener("click", saveAnalysisResult);
 
 renderInputMethod();
 renderPassage();

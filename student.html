@@ -46,6 +46,10 @@
             <input id="studentName" name="studentName" type="text" placeholder="예: 김민준" required>
           </label>
           <label>
+            학년/반
+            <input id="gradeClass" name="gradeClass" type="text" placeholder="예: 3학년 2반">
+          </label>
+          <label>
             생년월일
             <input id="birthDate" name="birthDate" type="date" required>
           </label>
@@ -214,13 +218,15 @@
             <thead>
               <tr>
                 <th>오류 유형</th>
-                <th>설명</th>
-                <th>횟수</th>
+                <th>오류 횟수</th>
+                <th>전사 텍스트 예시</th>
+                <th>해석</th>
+                <th>지도 방향</th>
               </tr>
             </thead>
             <tbody id="errorTableBody">
               <tr>
-                <td colspan="3">분석하기 버튼을 누르면 결과가 표시됩니다.</td>
+                <td colspan="5">분석하기 버튼을 누르면 결과가 표시됩니다.</td>
               </tr>
             </tbody>
           </table>
@@ -233,11 +239,11 @@
             <p class="section-kicker">Step 6</p>
             <h2 id="report-title">학생 개별 보고서</h2>
           </div>
-          <button class="button secondary" id="saveResultButton" type="button">Firebase에 저장하기</button>
+          <button class="button secondary" id="saveResultButton" type="button">저장하기</button>
         </div>
         <textarea id="reportText" rows="10" placeholder="분석 결과를 바탕으로 보고서 초안이 생성됩니다."></textarea>
         <p class="save-message" id="saveMessage" role="status">
-          현재 단계에서는 Firebase 저장 함수 구조만 준비되어 있습니다.
+          현재 단계에서는 저장하기 버튼을 누르면 콘솔에서 저장 예정 데이터를 확인합니다.
         </p>
       </section>
     </form>
