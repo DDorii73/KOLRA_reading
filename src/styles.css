@@ -548,6 +548,11 @@ td {
   color: var(--warm-brown);
 }
 
+.report-paper h4 {
+  margin: 1.4rem 0 0.7rem;
+  color: var(--warm-brown);
+}
+
 .report-paper dl {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -564,6 +569,22 @@ td {
 .report-paper dd {
   margin: 0;
   font-weight: 900;
+}
+
+.detail-table table {
+  min-width: 820px;
+}
+
+.report-text {
+  overflow: auto;
+  margin: 0;
+  padding: 1rem;
+  white-space: pre-wrap;
+  color: rgba(77, 53, 37, 0.82);
+  background: var(--white);
+  border: 1px solid rgba(125, 86, 56, 0.12);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
 }
 
 @media (max-width: 860px) {
