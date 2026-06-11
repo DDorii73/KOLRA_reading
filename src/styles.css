@@ -361,6 +361,76 @@ textarea:focus {
   font-size: 0.9rem;
 }
 
+.passage-preview,
+.file-preview {
+  margin: 1rem 0;
+  padding: 1.15rem;
+  color: rgba(77, 53, 37, 0.78);
+  background: rgba(247, 234, 216, 0.58);
+  border: 1px solid rgba(125, 86, 56, 0.12);
+  border-radius: var(--radius-md);
+}
+
+.passage-preview strong,
+.file-preview strong {
+  display: block;
+  color: var(--warm-brown);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.passage-preview span,
+.file-preview span {
+  display: inline-flex;
+  margin: 0.4rem 0 0.7rem;
+  color: var(--sage);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.file-preview pre {
+  max-height: 18rem;
+  overflow: auto;
+  margin: 0.75rem 0 0;
+  padding: 1rem;
+  white-space: pre-wrap;
+  color: var(--deep-brown);
+  background: var(--white);
+  border-radius: var(--radius-sm);
+}
+
+.method-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.method-option {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.8rem;
+  padding: 1.1rem;
+  background: rgba(247, 234, 216, 0.62);
+  border: 1px solid rgba(125, 86, 56, 0.14);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.method-option input {
+  width: auto;
+  margin-top: 0.25rem;
+}
+
+.method-option strong,
+.method-option small {
+  display: block;
+}
+
+.method-option small {
+  color: rgba(77, 53, 37, 0.62);
+  font-weight: 700;
+}
+
 .file-drop,
 .record-card {
   flex: 1 1 280px;
@@ -384,6 +454,11 @@ textarea:focus {
 
 .record-card p {
   color: rgba(77, 53, 37, 0.68);
+}
+
+.record-card audio {
+  width: 100%;
+  margin-top: 1rem;
 }
 
 .result-cards {
@@ -503,6 +578,7 @@ td {
   .feature-grid,
   .summary-grid,
   .result-cards,
+  .method-options,
   .form-grid {
     grid-template-columns: 1fr;
   }

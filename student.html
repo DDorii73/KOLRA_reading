@@ -33,11 +33,11 @@
     </section>
 
     <form class="workspace-grid" id="assessmentForm">
-      <section class="panel" aria-labelledby="student-info-title">
+      <section class="panel wide-panel" aria-labelledby="student-info-title">
         <div class="panel-header">
           <div>
             <p class="section-kicker">Step 1</p>
-            <h2 id="student-info-title">학생 정보</h2>
+            <h2 id="student-info-title">학생 기본 정보</h2>
           </div>
         </div>
         <div class="form-grid">
@@ -46,24 +46,16 @@
             <input id="studentName" name="studentName" type="text" placeholder="예: 김민준" required>
           </label>
           <label>
-            학년
-            <select id="studentGrade" name="studentGrade" required>
-              <option value="">선택</option>
-              <option>1학년</option>
-              <option>2학년</option>
-              <option>3학년</option>
-              <option>4학년</option>
-              <option>5학년</option>
-              <option>6학년</option>
-            </select>
+            생년월일
+            <input id="birthDate" name="birthDate" type="date" required>
           </label>
           <label>
             검사 날짜
             <input id="assessmentDate" name="assessmentDate" type="date" required>
           </label>
           <label>
-            검사자
-            <input id="teacherName" name="teacherName" type="text" placeholder="교사 이름">
+            생활연령
+            <input id="chronologicalAge" name="chronologicalAge" type="text" placeholder="생년월일과 검사 날짜 입력 시 자동 계산" readonly>
           </label>
         </div>
       </section>
@@ -72,44 +64,111 @@
         <div class="panel-header">
           <div>
             <p class="section-kicker">Step 2</p>
-            <h2 id="reading-material-title">읽기 자료와 전사 텍스트</h2>
+            <h2 id="reading-material-title">검사 문단 선택</h2>
           </div>
         </div>
         <label>
-          제시 문단글
-          <textarea id="readingPassage" name="readingPassage" rows="8" placeholder="학생에게 제시한 문단글을 입력하세요." required></textarea>
+          검사 문단명 또는 자료명
+          <select id="passageSelect" name="passageSelect" required>
+            <option value="">문단글 원문을 선택하세요</option>
+            <option value="grade-1-2">1) 1,2학년 수준 - 아침 산책</option>
+            <option value="grade-3-4">2) 3,4학년 수준 - 마을 도서관</option>
+            <option value="grade-5-6">3) 5,6학년 수준 - 숲과 물의 순환</option>
+          </select>
+        </label>
+        <article class="passage-preview" id="passagePreview">
+          <p>선택한 문단글 원문이 이곳에 표시됩니다.</p>
+        </article>
+        <label>
+          선택한 문단글 원문
+          <textarea id="readingPassage" name="readingPassage" rows="8" readonly required></textarea>
         </label>
         <div class="text-meta">
           <span>제시 글 어절 수: <strong id="passageWordCount">0</strong></span>
           <span>저장 대상: 학생 정보, 검사 날짜, 전사 텍스트, 분석 결과</span>
         </div>
-        <label>
-          STT 전사 텍스트
-          <textarea id="transcriptText" name="transcriptText" rows="8" placeholder="전사 파일을 업로드하거나 직접 입력하세요." required></textarea>
-        </label>
-        <div class="upload-row">
-          <label class="file-drop">
-            <input id="transcriptFile" type="file" accept=".txt,.vtt,.srt,text/plain">
-            <span>STT 전사파일 업로드</span>
-            <small>txt, vtt, srt 파일을 지원합니다.</small>
-          </label>
-          <div class="record-card">
-            <h3>브라우저 직접 녹음</h3>
-            <p>원본 녹음 파일은 Firebase에 저장하지 않습니다. 이 화면에서만 전사 흐름을 준비합니다.</p>
-            <div class="button-row">
-              <button class="button secondary" id="startRecordingButton" type="button">녹음 시작</button>
-              <button class="button ghost" id="stopRecordingButton" type="button" disabled>녹음 종료</button>
-              <button class="button ghost" id="convertRecordingButton" type="button" disabled>텍스트 변환</button>
-            </div>
-            <p class="record-status" id="recordStatus">대기 중</p>
+      </section>
+
+      <section class="panel wide-panel" aria-labelledby="input-method-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Step 3</p>
+            <h2 id="input-method-title">자료 입력 방식 선택</h2>
           </div>
         </div>
+        <div class="method-options" role="radiogroup" aria-label="자료 입력 방식">
+          <label class="method-option">
+            <input type="radio" name="inputMethod" value="upload" checked>
+            <span>
+              <strong>STT 전사파일 업로드</strong>
+              <small>우선 txt 파일을 기준으로 업로드합니다.</small>
+            </span>
+          </label>
+          <label class="method-option">
+            <input type="radio" name="inputMethod" value="record">
+            <span>
+              <strong>직접 녹음</strong>
+              <small>브라우저에서 녹음하고 텍스트 변환 흐름을 준비합니다.</small>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel wide-panel" id="uploadPanel" aria-labelledby="upload-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Upload</p>
+            <h2 id="upload-title">STT 전사파일 업로드</h2>
+          </div>
+        </div>
+        <label class="file-drop">
+          <input id="transcriptFile" type="file" accept=".txt,text/plain">
+          <span>txt 전사파일 선택</span>
+          <small>현재는 txt 파일을 우선 지원하며, 이후 docx/pdf 파서를 추가할 수 있도록 파일 처리 함수를 분리했습니다.</small>
+        </label>
+        <article class="file-preview" id="filePreview">
+          <strong>업로드된 파일 내용</strong>
+          <p>txt 파일을 업로드하면 내용이 이곳에 표시됩니다.</p>
+        </article>
+      </section>
+
+      <section class="panel wide-panel" id="recordPanel" aria-labelledby="record-title" hidden>
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Record</p>
+            <h2 id="record-title">직접 녹음</h2>
+          </div>
+        </div>
+        <div class="record-card">
+          <h3>브라우저 직접 녹음</h3>
+          <p>녹음 원본 파일은 Firebase에 저장하지 않습니다. 녹음 데이터는 텍스트 변환을 위해 화면에서만 임시로 사용합니다.</p>
+          <div class="button-row">
+            <button class="button secondary" id="startRecordingButton" type="button">녹음 시작</button>
+            <button class="button ghost" id="stopRecordingButton" type="button" disabled>녹음 중지</button>
+            <button class="button ghost" id="convertRecordingButton" type="button" disabled>녹음 → 텍스트 변환</button>
+          </div>
+          <p class="record-status" id="recordStatus">녹음 대기 중</p>
+          <audio id="audioPreview" controls hidden></audio>
+        </div>
+      </section>
+
+      <section class="panel wide-panel" aria-labelledby="transcript-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Transcript</p>
+            <h2 id="transcript-title">전사 텍스트 표시 및 수정</h2>
+          </div>
+        </div>
+        <label>
+          전사 텍스트
+          <textarea id="transcriptText" name="transcriptText" rows="10" placeholder="업로드된 txt 내용 또는 녹음 후 변환된 텍스트가 표시됩니다. 교사가 직접 수정할 수 있습니다." required></textarea>
+        </label>
       </section>
 
       <section class="panel" aria-labelledby="timing-title">
         <div class="panel-header">
           <div>
-            <p class="section-kicker">Step 3</p>
+            <p class="section-kicker">Step 4</p>
             <h2 id="timing-title">읽기 시간</h2>
           </div>
         </div>
@@ -128,7 +187,7 @@
       <section class="panel wide-panel" aria-labelledby="analysis-title">
         <div class="panel-header">
           <div>
-            <p class="section-kicker">Step 4</p>
+            <p class="section-kicker">Step 5</p>
             <h2 id="analysis-title">분석 결과</h2>
           </div>
           <button class="button primary" id="analyzeButton" type="button">분석하기</button>
@@ -171,7 +230,7 @@
       <section class="panel wide-panel" aria-labelledby="report-title">
         <div class="panel-header">
           <div>
-            <p class="section-kicker">Step 5</p>
+            <p class="section-kicker">Step 6</p>
             <h2 id="report-title">학생 개별 보고서</h2>
           </div>
           <button class="button secondary" id="saveResultButton" type="button">Firebase에 저장하기</button>
