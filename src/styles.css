@@ -36,11 +36,14 @@ body {
     var(--bg);
   font-family: "Pretendard", "Noto Sans KR", system-ui, sans-serif;
   line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+  word-break: keep-all;
 }
 
 button,
@@ -48,6 +51,24 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+h1,
+h2,
+h3,
+p,
+li,
+dt,
+dd,
+label,
+button,
+a,
+span,
+small,
+td,
+th {
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 textarea {
@@ -64,6 +85,7 @@ textarea {
 
 main {
   width: min(1180px, calc(100% - 3rem));
+  min-width: 0;
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 4rem) 0;
 }
@@ -554,6 +576,8 @@ textarea::placeholder {
 textarea {
   min-height: 9rem;
   line-height: 1.72;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 textarea[readonly] {
@@ -609,6 +633,8 @@ textarea:focus {
   margin: 0.4rem 0 0;
   padding: 1rem;
   white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: break-word;
   line-height: 1.8;
   color: #344054;
   background: var(--surface);
@@ -622,6 +648,8 @@ textarea:focus {
   margin: 0.75rem 0 0;
   padding: 1rem;
   white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: break-word;
   color: #344054;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -737,7 +765,7 @@ textarea:focus {
 
 table {
   width: 100%;
-  min-width: 720px;
+  min-width: 680px;
   border-collapse: collapse;
   background: var(--surface);
 }
@@ -866,19 +894,16 @@ tbody tr:hover {
 
   .hero,
   .feature-grid,
-  .summary-grid,
-  .result-cards,
-  .method-options,
-  .form-grid {
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 
   main {
-    width: min(100% - 1.5rem, 1180px);
+    width: min(100% - 2rem, 1180px);
   }
 
   .landing-header {
-    width: min(100% - 1.5rem, 1180px);
+    width: min(100% - 2rem, 1180px);
   }
 
   .header-actions {
@@ -887,6 +912,26 @@ tbody tr:hover {
 
   .header-actions .button {
     flex: 1;
+    min-width: 8.5rem;
+  }
+
+  .form-grid,
+  .method-options,
+  .result-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  }
+
+  .landing-hero .teacher-actions {
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    width: 100%;
+  }
+
+  .panel,
+  .landing-hero .hero-copy,
+  .feature-card,
+  .summary-card,
+  .report-paper {
+    min-width: 0;
   }
 
   .panel-header,
@@ -896,6 +941,42 @@ tbody tr:hover {
   }
 
   .report-paper dl {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  main,
+  .landing-header {
+    width: min(100% - 1rem, 1180px);
+  }
+
+  .landing-header,
+  .header-actions,
+  .page-actions,
+  .button-row {
+    align-items: stretch;
+  }
+
+  .header-actions,
+  .page-actions {
+    flex-direction: column;
+  }
+
+  .button,
+  .table-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .landing-hero .hero-copy,
+  .panel {
+    padding: 1.1rem;
+    border-radius: 18px;
+  }
+
+  .landing-hero .hero-copy h1 {
+    font-size: 1.35rem;
+    line-height: 1.35;
   }
 }
