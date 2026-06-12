@@ -38,6 +38,12 @@ body {
   line-height: 1.6;
 }
 
+body:has(.landing-hero) {
+  background:
+    radial-gradient(circle at 90% 8%, rgba(241, 223, 200, 0.9), transparent 14rem),
+    linear-gradient(135deg, #fbf6ea 0%, #f5ead9 100%);
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -78,39 +84,73 @@ main {
 
 .landing-hero {
   position: relative;
-  grid-template-columns: minmax(0, 760px);
+  grid-template-columns: minmax(0, 1fr);
   justify-content: center;
-  min-height: 76vh;
-  text-align: center;
+  min-height: 72vh;
+  text-align: left;
 }
 
 .landing-hero .hero-copy {
-  display: grid;
-  justify-items: center;
-  width: min(100%, 720px);
-  padding: clamp(2rem, 5vw, 3.5rem);
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--line);
-  border-radius: 28px;
+  position: relative;
+  display: block;
+  width: min(100%, 980px);
+  min-height: 320px;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 6vw, 4rem);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #eadcc8;
+  border-radius: 32px;
 }
 
 .landing-hero .hero-description {
-  margin: 1.25rem auto 0;
+  max-width: 720px;
+  margin: 1.35rem 0 0;
+  color: #6f6259;
+  font-size: 1.08rem;
+  line-height: 1.9;
 }
 
 .landing-hero .eyebrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1rem;
-  padding: 0.38rem 0.7rem;
-  background: var(--primary-soft);
-  border: 1px solid #dbe4ff;
-  border-radius: 999px;
+  margin-bottom: 0.35rem;
+  padding: 0;
+  color: #a86b3f;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .landing-hero h1 {
-  max-width: 13ch;
+  max-width: none;
+  color: #312823;
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.045em;
+}
+
+.landing-hero .hero-copy::after {
+  position: absolute;
+  top: -4rem;
+  right: -2rem;
+  width: 13rem;
+  height: 13rem;
+  content: "";
+  background: #f1dfc8;
+  border-radius: 999px;
+  opacity: 0.95;
+}
+
+.landing-hero .button.primary {
+  background: #b5713f;
+  border-color: #b5713f;
+  box-shadow: 0 14px 28px rgba(181, 113, 63, 0.18);
+}
+
+.landing-hero .button.primary:hover {
+  background: #9f6033;
+  border-color: #9f6033;
 }
 
 .hero-copy h1,
@@ -229,18 +269,20 @@ main {
 }
 
 .auth-panel {
-  width: min(100%, 520px);
+  width: auto;
   max-width: 100%;
-  padding: 1rem;
-  background: var(--surface-muted);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  justify-content: center;
+  margin-top: 1.6rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  justify-content: flex-start;
 }
 
 .auth-panel .auth-message {
-  width: 100%;
+  width: auto;
   margin: 0;
+  color: #796b61;
 }
 
 .teacher-actions {
