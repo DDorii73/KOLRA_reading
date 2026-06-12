@@ -398,33 +398,6 @@ main {
   min-width: fit-content;
 }
 
-.rag-summary {
-  padding: 1.25rem;
-  background: var(--surface-indigo);
-  border: 1px solid #dbe4ff;
-  border-radius: var(--radius-lg);
-}
-
-.rag-summary h2 {
-  margin: 0 0 0.85rem;
-  color: var(--text);
-  font-size: 1.2rem;
-  letter-spacing: -0.03em;
-}
-
-.rag-summary ol {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
-  padding-left: 1.25rem;
-  color: #344054;
-}
-
-.rag-summary li::marker {
-  color: var(--primary);
-  font-weight: 900;
-}
-
 .workspace-grid {
   display: grid;
   grid-template-columns: 1fr;
