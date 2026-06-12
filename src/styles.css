@@ -68,6 +68,48 @@ main {
   padding: clamp(2rem, 5vw, 4rem) 0;
 }
 
+.landing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(1180px, calc(100% - 3rem));
+  margin: 1.25rem auto 0;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  backdrop-filter: blur(16px);
+}
+
+.landing-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.landing-logo {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  border-radius: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.landing-main {
+  padding-top: clamp(2rem, 5vw, 4.5rem);
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
@@ -78,27 +120,26 @@ main {
 
 .landing-hero {
   position: relative;
-  grid-template-columns: minmax(0, 1fr);
-  justify-content: center;
-  min-height: 72vh;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  justify-content: initial;
+  min-height: auto;
   text-align: left;
 }
 
 .landing-hero .hero-copy {
-  position: relative;
   display: block;
-  width: min(100%, 980px);
-  min-height: 320px;
-  margin: 0 auto;
-  padding: clamp(2.5rem, 6vw, 4rem);
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid var(--line);
-  border-radius: 32px;
+  width: auto;
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .landing-hero .hero-description {
-  max-width: 720px;
+  max-width: 660px;
   margin: 1.35rem 0 0;
   color: var(--muted);
   font-size: 1.08rem;
@@ -120,20 +161,8 @@ main {
 .landing-hero h1 {
   max-width: none;
   color: var(--text);
-  font-size: clamp(2rem, 4vw, 3rem);
-  letter-spacing: -0.045em;
-}
-
-.landing-hero .hero-copy::after {
-  position: absolute;
-  top: -4rem;
-  right: -2rem;
-  width: 13rem;
-  height: 13rem;
-  content: "";
-  background: var(--primary-soft);
-  border-radius: 999px;
-  opacity: 0.95;
+  font-size: clamp(2.65rem, 6vw, 5rem);
+  letter-spacing: -0.07em;
 }
 
 .landing-hero .button.primary {
@@ -145,6 +174,22 @@ main {
 .landing-hero .button.primary:hover {
   background: var(--primary-strong);
   border-color: var(--primary-strong);
+}
+
+.landing-hero .teacher-actions {
+  justify-content: flex-start;
+  margin-top: 2rem;
+}
+
+.landing-hero .teacher-actions .button {
+  min-width: 0;
+  min-height: 3rem;
+  justify-content: center;
+  padding: 0.85rem 1.2rem;
+}
+
+.landing-hero .teacher-actions .button::after {
+  content: none;
 }
 
 .hero-copy h1,
@@ -273,6 +318,23 @@ main {
   justify-content: flex-start;
 }
 
+.landing-hero .auth-panel {
+  align-self: start;
+  width: 100%;
+  margin-top: 0;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.landing-hero .auth-panel h2 {
+  margin: 0 0 0.8rem;
+  color: var(--text);
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
 .auth-panel .auth-message {
   width: auto;
   margin: 0;
@@ -351,9 +413,20 @@ main {
   gap: 1rem;
 }
 
+.landing-features {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+}
+
 .feature-card,
 .summary-card {
   padding: 1.25rem;
+}
+
+.feature-card p {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 .feature-number {
@@ -765,6 +838,7 @@ tbody tr:hover {
 }
 
 @media (max-width: 860px) {
+  .landing-header,
   .monitor-intro {
     align-items: flex-start;
     flex-direction: column;
@@ -781,6 +855,18 @@ tbody tr:hover {
 
   main {
     width: min(100% - 1.5rem, 1180px);
+  }
+
+  .landing-header {
+    width: min(100% - 1.5rem, 1180px);
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .button {
+    flex: 1;
   }
 
   .panel-header,
