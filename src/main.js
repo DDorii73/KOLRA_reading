@@ -1,4 +1,5 @@
 import { clearTeacherSession, requireTeacherAuth } from "./firebaseConfig.js";
+import ragReference from "../rag.md?raw";
 
 const teacherSession = requireTeacherAuth();
 if (!teacherSession) {
@@ -292,6 +293,33 @@ function analyzeReadingFluency(formData) {
   };
 }
 
+async function generateReportWithGpt(formData, analysis) {
+  const response = await fetch("/.netlify/functions/generate-report", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      ragReference,
+      formData,
+      analysis: {
+        totalSyllables: analysis.totalSyllables,
+        errorSyllables: analysis.errorSyllables,
+        readingRate: analysis.readingRate,
+        totalErrors: analysis.totalErrors,
+        errorRows: analysis.errorRows
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error("GPT 보고서 생성 API를 사용할 수 없습니다.");
+  }
+
+  const { reportText: generatedReport } = await response.json();
+  return generatedReport;
+}
+
 function renderAnalysis(analysis) {
   readingRate.textContent = analysis.readingRate;
   errorCount.textContent = analysis.totalErrors;
@@ -449,7 +477,7 @@ convertRecordingButton.addEventListener("click", async () => {
   recordStatus.textContent = "녹음 → 텍스트 변환 함수 구조가 준비되었습니다.";
 });
 
-analyzeButton.addEventListener("click", () => {
+analyzeButton.addEventListener("click", async () => {
   const formData = getFormData();
 
   if (!formData.passage || !formData.transcript || !formData.seconds) {
@@ -459,7 +487,21 @@ analyzeButton.addEventListener("click", () => {
 
   latestAnalysis = analyzeReadingFluency(formData);
   renderAnalysis(latestAnalysis);
-  saveMessage.textContent = "분석 결과가 생성되었습니다. 필요하면 보고서 내용을 수정한 뒤 저장하세요.";
+  saveMessage.textContent = "기준 자료 기반 분석 결과를 생성했습니다. GPT 보고서를 생성하는 중입니다.";
+
+  try {
+    const generatedReport = await generateReportWithGpt(formData, latestAnalysis);
+    if (generatedReport) {
+      latestAnalysis.report = generatedReport;
+      reportText.value = generatedReport;
+      saveMessage.textContent = "RAG 기준 자료와 GPT API를 활용해 보고서를 생성했습니다.";
+      return;
+    }
+  } catch (error) {
+    console.warn(error);
+  }
+
+  saveMessage.textContent = "분석 결과가 생성되었습니다. GPT API 미설정 시 기본 보고서 초안을 사용합니다.";
 });
 
 saveResultButton.addEventListener("click", saveAnalysisResult);
