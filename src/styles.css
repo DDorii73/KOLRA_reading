@@ -78,6 +78,19 @@ main {
 
 .landing-hero {
   position: relative;
+  grid-template-columns: minmax(0, 760px);
+  justify-content: center;
+  min-height: 76vh;
+  text-align: center;
+}
+
+.landing-hero .hero-copy {
+  display: grid;
+  justify-items: center;
+}
+
+.landing-hero .hero-description {
+  margin: 1.25rem auto 0;
 }
 
 .hero-copy h1,
@@ -196,12 +209,13 @@ main {
 }
 
 .auth-panel {
-  width: fit-content;
+  width: min(100%, 520px);
   max-width: 100%;
   padding: 0.85rem;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
+  justify-content: center;
 }
 
 .auth-panel .auth-message {
@@ -211,6 +225,7 @@ main {
 
 .teacher-actions {
   align-items: stretch;
+  justify-content: center;
 }
 
 .teacher-actions .button {
