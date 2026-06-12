@@ -165,7 +165,7 @@
         </label>
       </section>
 
-      <section class="panel" aria-labelledby="timing-title">
+      <section class="panel wide-panel" aria-labelledby="timing-title">
         <div class="panel-header">
           <div>
             <p class="section-kicker">Step 4</p>
@@ -196,7 +196,7 @@
           <article>
             <span>읽기 속도</span>
             <strong id="readingRate">-</strong>
-            <small>어절/분</small>
+            <small>10초당 정확 음절 수</small>
           </article>
           <article>
             <span>오류 수</span>
@@ -206,7 +206,6 @@
           <article>
             <span>최종 점수</span>
             <strong id="fluencyScore">-</strong>
-            <small>100점 기준</small>
           </article>
         </div>
         <div class="table-wrap">
@@ -215,14 +214,12 @@
               <tr>
                 <th>오류 유형</th>
                 <th>오류 횟수</th>
-                <th>전사 텍스트 예시</th>
-                <th>해석</th>
-                <th>지도 방향</th>
+                <th>오류 어절</th>
               </tr>
             </thead>
             <tbody id="errorTableBody">
               <tr>
-                <td colspan="5">분석하기 버튼을 누르면 결과가 표시됩니다.</td>
+                <td colspan="3">분석하기 버튼을 누르면 결과가 표시됩니다.</td>
               </tr>
             </tbody>
           </table>
@@ -235,7 +232,10 @@
             <p class="section-kicker">Step 6</p>
             <h2 id="report-title">학생 개별 보고서</h2>
           </div>
-          <button class="button secondary" id="saveResultButton" type="button">저장하기</button>
+          <div class="button-row">
+            <button class="button ghost" id="tempSaveReportButton" type="button">학생별 임시저장</button>
+            <button class="button secondary" id="saveResultButton" type="button">저장하기</button>
+          </div>
         </div>
         <textarea id="reportText" rows="10" placeholder="분석 결과를 바탕으로 보고서 초안이 생성됩니다."></textarea>
         <p class="save-message" id="saveMessage" role="status">

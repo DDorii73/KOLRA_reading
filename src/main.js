@@ -55,6 +55,7 @@ const fluencyScore = document.querySelector("#fluencyScore");
 const errorTableBody = document.querySelector("#errorTableBody");
 const reportText = document.querySelector("#reportText");
 const saveMessage = document.querySelector("#saveMessage");
+const tempSaveReportButton = document.querySelector("#tempSaveReportButton");
 const startRecordingButton = document.querySelector("#startRecordingButton");
 const stopRecordingButton = document.querySelector("#stopRecordingButton");
 const convertRecordingButton = document.querySelector("#convertRecordingButton");
@@ -70,6 +71,10 @@ assessmentDate.valueAsDate = new Date();
 
 function countWords(text) {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function countSyllables(text) {
+  return (text.match(/[가-힣A-Za-z0-9]/g) || []).length;
 }
 
 function escapeHtml(value) {
@@ -156,9 +161,10 @@ function renderUploadedFile(file, text) {
   `;
 }
 
-function calculateReadingRate(wordCount, seconds) {
-  if (!wordCount || !seconds) return 0;
-  return Math.round((wordCount / seconds) * 60);
+function calculateReadingRate(totalSyllables, errorSyllables, seconds) {
+  if (!totalSyllables || !seconds) return 0;
+  const correctSyllables = Math.max(totalSyllables - errorSyllables, 0);
+  return Number(((correctSyllables / seconds) * 10).toFixed(1));
 }
 
 function compareTokens(passage, transcript) {
@@ -194,15 +200,17 @@ function compareTokens(passage, transcript) {
       omission: omissionExamples.slice(0, 3),
       insertion: insertionExamples.slice(0, 3),
       substitution: substitutions.slice(0, 3)
-    }
+    },
+    errorWords: {
+      omission: omissionExamples,
+      insertion: insertionExamples,
+      substitution: substitutions.map(({ expected, actual }) => `${expected}→${actual}`)
+    },
+    errorSyllables:
+      omissionExamples.reduce((sum, word) => sum + countSyllables(word), 0) +
+      insertionExamples.reduce((sum, word) => sum + countSyllables(word), 0) +
+      substitutions.reduce((sum, { expected }) => sum + countSyllables(expected), 0)
   };
-}
-
-function getFluencyLevel(score) {
-  if (score >= 90) return "안정적인 유창성 수준";
-  if (score >= 75) return "대체로 양호하나 일부 보완이 필요한 수준";
-  if (score >= 60) return "정확도와 속도에 대한 지속적인 지도가 필요한 수준";
-  return "집중적인 읽기 지원이 필요한 수준";
 }
 
 function getMainErrorType(errorTypes) {
@@ -215,24 +223,16 @@ function getMainErrorType(errorTypes) {
   return count > 0 ? `${type} 오류` : "두드러진 오류 없음";
 }
 
-function formatErrorExample(type, errorTypes) {
+function formatErrorWords(type, errorTypes) {
   if (type === "생략") {
-    return errorTypes.examples.omission.length
-      ? `누락 추정: ${errorTypes.examples.omission.join(", ")}`
-      : "예시 없음";
+    return errorTypes.errorWords.omission.length ? errorTypes.errorWords.omission.join(", ") : "해당 없음";
   }
 
   if (type === "삽입") {
-    return errorTypes.examples.insertion.length
-      ? `추가 읽기: ${errorTypes.examples.insertion.join(", ")}`
-      : "예시 없음";
+    return errorTypes.errorWords.insertion.length ? errorTypes.errorWords.insertion.join(", ") : "해당 없음";
   }
 
-  return errorTypes.examples.substitution.length
-    ? errorTypes.examples.substitution
-        .map(({ expected, actual }) => `${expected} → ${actual}`)
-        .join(", ")
-    : "예시 없음";
+  return errorTypes.errorWords.substitution.length ? errorTypes.errorWords.substitution.join(", ") : "해당 없음";
 }
 
 function createErrorRows(errorTypes) {
@@ -240,81 +240,54 @@ function createErrorRows(errorTypes) {
     {
       type: "생략",
       count: errorTypes.omissions,
-      transcriptExample: formatErrorExample("생략", errorTypes),
-      interpretation: "제시 문단의 일부 어절을 건너뛰었을 가능성이 있습니다.",
-      guidance: "짧은 의미 단위로 끊어 읽고 빠뜨린 어절을 다시 확인하는 활동을 권장합니다."
+      errorWords: formatErrorWords("생략", errorTypes)
     },
     {
       type: "삽입",
       count: errorTypes.insertions,
-      transcriptExample: formatErrorExample("삽입", errorTypes),
-      interpretation: "원문에 없는 어절을 추가해 읽었을 가능성이 있습니다.",
-      guidance: "눈으로 원문을 따라가며 정확히 읽는 연습과 손가락 짚어 읽기를 활용합니다."
+      errorWords: formatErrorWords("삽입", errorTypes)
     },
     {
       type: "대치",
       count: errorTypes.substitutions,
-      transcriptExample: formatErrorExample("대치", errorTypes),
-      interpretation: "비슷한 형태나 의미의 어절로 바꾸어 읽었을 가능성이 있습니다.",
-      guidance: "혼동한 어절을 비교하고 문맥 속에서 정확한 낱말을 확인하도록 지도합니다."
+      errorWords: formatErrorWords("대치", errorTypes)
     }
   ];
 }
 
-function createReport({ formData, rate, totalErrors, score, errorTypes }) {
+function createReport({ formData, totalSyllables, errorSyllables, rate, errorTypes }) {
   const mainErrorType = getMainErrorType(errorTypes);
-  const fluencyLevel = getFluencyLevel(score);
+  const studentName = formData.studentName || "학생 A";
+  const passageTitle = formData.passageTitle || "선택한 지문";
+  const readingSecondsText = formData.seconds || "미입력";
 
   return [
-    "[학생 기본 정보]",
-    `- 학생 이름: ${formData.studentName || "미입력"}`,
-    `- 생년월일: ${formData.birthDate || "미입력"}`,
-    `- 검사일: ${formData.assessmentDate || "미입력"}`,
-    `- 생활연령: ${formData.chronologicalAge || "미계산"}`,
-    `- 검사 문단: ${formData.passageTitle || "미선택"}`,
-    "",
-    "[읽기 속도 결과]",
-    `- 분당 ${rate}어절로 산출되었습니다.`,
-    "",
-    "[주요 오류 유형]",
-    `- ${mainErrorType}이 주요하게 관찰됩니다.`,
-    `- 총 오류 수는 ${totalErrors}회입니다. 생략 ${errorTypes.omissions}회, 삽입 ${errorTypes.insertions}회, 대치 ${errorTypes.substitutions}회입니다.`,
-    "",
-    "[유창성 수준 요약]",
-    `- 최종 점수는 ${score}점이며, ${fluencyLevel}으로 요약할 수 있습니다.`,
-    "",
-    "[강점]",
-    "- 문단글을 끝까지 읽고 전사 자료를 바탕으로 분석할 수 있는 읽기 수행 자료가 확보되었습니다.",
-    rate >= 80 ? "- 읽기 속도는 현재 문단 수준에서 비교적 안정적으로 나타납니다." : "- 일부 구간에서 천천히 읽더라도 정확하게 확인하려는 모습이 강점이 될 수 있습니다.",
-    "",
-    "[보완이 필요한 점]",
-    totalErrors > 0
-      ? `- ${mainErrorType}과 관련된 정확도 점검이 필요합니다.`
-      : "- 현재 단순 비교 기준에서는 뚜렷한 오류가 많지 않으므로 억양, 쉼, 자연스러움도 함께 관찰합니다.",
-    "",
-    "[지도 제안]",
-    "- 문장 단위보다 짧은 의미 단위로 끊어 읽고, 읽은 뒤 원문과 전사 텍스트를 함께 비교합니다.",
-    "- 오류가 반복되는 어절은 다시 읽기, 따라 읽기, 문맥 속 낱말 확인 활동으로 지도합니다."
-  ].join("\n");
+    `다음은 ${passageTitle} 지문을 활용한 문단글 읽기 유창성 검사 결과 해석 예시이다.`,
+    `${studentName}는 ${passageTitle} 지문을 읽는 과정에서 전체 문단 음절 수 ${totalSyllables}음절 중 ${errorSyllables}음절에서 오류를 보였으며, 전체 소요시간은 ${readingSecondsText}초였다. 이에 따라 10초당 정확하게 읽은 음절 수는 [(${totalSyllables}-${errorSyllables})/${readingSecondsText}]×10으로 산출되며, 약 ${rate}음절로 계산된다. ${studentName}의 오류 유형을 분석한 결과, ${mainErrorType}이 주요하게 나타났으며 생략 ${errorTypes.omissions}회, 삽입 ${errorTypes.insertions}회, 대치 ${errorTypes.substitutions}회가 나타났다.`
+  ].join("\n ");
 }
 
 function analyzeReadingFluency(formData) {
   // TODO: Move advanced OpenAI-assisted analysis to Firebase Functions.
   const wordCount = countWords(formData.passage);
-  const rate = calculateReadingRate(wordCount, Number(formData.seconds));
+  const totalSyllables = countSyllables(formData.passage);
   const errorTypes = compareTokens(formData.passage, formData.transcript);
   const totalErrors = errorTypes.omissions + errorTypes.insertions + errorTypes.substitutions;
-  const score = Math.max(0, Math.min(100, Math.round(100 - totalErrors * 3 + Math.min(rate, 160) * 0.08)));
+  const errorSyllables = errorTypes.errorSyllables;
+  const rate = calculateReadingRate(totalSyllables, errorSyllables, Number(formData.seconds));
+  const score = rate;
   const errorRows = createErrorRows(errorTypes);
 
   return {
     wordCount,
+    totalSyllables,
+    errorSyllables,
     readingRate: rate,
     totalErrors,
     score,
     errorTypes,
     errorRows,
-    report: createReport({ formData, rate, totalErrors, score, errorTypes })
+    report: createReport({ formData, totalSyllables, errorSyllables, rate, errorTypes })
   };
 }
 
@@ -329,9 +302,7 @@ function renderAnalysis(analysis) {
       <tr>
         <td><span class="badge">${escapeHtml(row.type)}</span></td>
         <td>${escapeHtml(row.count)}</td>
-        <td>${escapeHtml(row.transcriptExample)}</td>
-        <td>${escapeHtml(row.interpretation)}</td>
-        <td>${escapeHtml(row.guidance)}</td>
+        <td>${escapeHtml(row.errorWords)}</td>
       </tr>
     `)
     .join("");
@@ -383,6 +354,15 @@ function saveAnalysisResult() {
   const analysisResultData = buildAnalysisResultData(formData, latestAnalysis);
   console.log("Firestore 저장 예정 데이터:", analysisResultData);
   saveMessage.textContent = "저장 예정 데이터를 콘솔에서 확인할 수 있습니다.";
+}
+
+function tempSaveReport() {
+  console.log("학생별 임시저장 보고서:", {
+    studentName: getFormData().studentName,
+    reportText: reportText.value.trim(),
+    savedAt: new Date().toISOString()
+  });
+  saveMessage.textContent = "학생별 보고서 임시저장 데이터를 콘솔에서 확인할 수 있습니다.";
 }
 
 async function requestTranscriptionFromServer() {
@@ -478,6 +458,7 @@ analyzeButton.addEventListener("click", () => {
 });
 
 saveResultButton.addEventListener("click", saveAnalysisResult);
+tempSaveReportButton.addEventListener("click", tempSaveReport);
 
 renderInputMethod();
 renderPassage();
