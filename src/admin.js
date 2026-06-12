@@ -17,9 +17,8 @@ const sampleResults = [
   {
     id: "sample-1",
     studentName: "김민준",
-    gradeClass: "2학년 1반",
     testDate: "2026-06-11",
-    passageTitle: "1,2학년 수준 - 아침 산책",
+    passageTitle: "1,2학년 수준 [김밥만들기]",
     readingSpeed: 84,
     finalScore: 92,
     mainErrorType: "대치 오류",
@@ -39,14 +38,13 @@ const sampleResults = [
         guidance: "의미 단위로 끊어 읽고 빠뜨린 어절을 확인합니다."
       }
     ],
-    reportText: "학생 기본 정보: 김민준, 2학년 1반\n읽기 속도 결과: 분당 84어절\n주요 오류 유형: 대치 오류\n유창성 수준 요약: 안정적인 수준\n강점: 끝까지 읽기를 수행했습니다.\n보완이 필요한 점: 비슷한 어절 구별이 필요합니다.\n지도 제안: 원문 확인 후 다시 읽기를 권장합니다."
+    reportText: "학생 기본 정보: 김민준\n읽기 속도 결과: 분당 84어절\n주요 오류 유형: 대치 오류\n유창성 수준 요약: 안정적인 수준\n강점: 끝까지 읽기를 수행했습니다.\n보완이 필요한 점: 비슷한 어절 구별이 필요합니다.\n지도 제안: 원문 확인 후 다시 읽기를 권장합니다."
   },
   {
     id: "sample-2",
     studentName: "이서연",
-    gradeClass: "3학년 2반",
     testDate: "2026-06-10",
-    passageTitle: "3,4학년 수준 - 마을 도서관",
+    passageTitle: "3,4학년 수준 [산과 바다]",
     readingSpeed: 61,
     finalScore: 72,
     mainErrorType: "생략 오류",
@@ -66,7 +64,7 @@ const sampleResults = [
         guidance: "손가락 짚어 읽기와 원문 대조 활동을 활용합니다."
       }
     ],
-    reportText: "학생 기본 정보: 이서연, 3학년 2반\n읽기 속도 결과: 분당 61어절\n주요 오류 유형: 생략 오류\n유창성 수준 요약: 정확도와 속도 보완이 필요한 수준\n강점: 긴 문단을 끝까지 읽었습니다.\n보완이 필요한 점: 누락 없이 읽는 정확도 향상이 필요합니다.\n지도 제안: 의미 단위 끊어 읽기와 반복 읽기를 권장합니다."
+    reportText: "학생 기본 정보: 이서연\n읽기 속도 결과: 분당 61어절\n주요 오류 유형: 생략 오류\n유창성 수준 요약: 정확도와 속도 보완이 필요한 수준\n강점: 긴 문단을 끝까지 읽었습니다.\n보완이 필요한 점: 누락 없이 읽는 정확도 향상이 필요합니다.\n지도 제안: 의미 단위 끊어 읽기와 반복 읽기를 권장합니다."
   }
 ];
 
@@ -165,7 +163,6 @@ function renderDetail(result) {
   selectedDetail.innerHTML = `
     <h3>${escapeHtml(result.studentName)} 학생 상세 결과</h3>
     <dl>
-      <div><dt>학년/반</dt><dd>${escapeHtml(result.gradeClass || result.studentGrade)}</dd></div>
       <div><dt>검사 날짜</dt><dd>${escapeHtml(result.testDate || result.assessmentDate)}</dd></div>
       <div><dt>검사 문단</dt><dd>${escapeHtml(result.passageTitle || "-")}</dd></div>
       <div><dt>읽기 속도</dt><dd>${escapeHtml(result.readingSpeed || result.readingRate)} 어절/분</dd></div>

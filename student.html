@@ -46,10 +46,6 @@
             <input id="studentName" name="studentName" type="text" placeholder="예: 김민준" required>
           </label>
           <label>
-            학년/반
-            <input id="gradeClass" name="gradeClass" type="text" placeholder="예: 3학년 2반">
-          </label>
-          <label>
             생년월일
             <input id="birthDate" name="birthDate" type="date" required>
           </label>
@@ -75,9 +71,9 @@
           검사 문단명 또는 자료명
           <select id="passageSelect" name="passageSelect" required>
             <option value="">문단글 원문을 선택하세요</option>
-            <option value="grade-1-2">1) 1,2학년 수준 - 아침 산책</option>
-            <option value="grade-3-4">2) 3,4학년 수준 - 마을 도서관</option>
-            <option value="grade-5-6">3) 5,6학년 수준 - 숲과 물의 순환</option>
+            <option value="grade-1-2">1) 1,2학년 수준 [김밥만들기]</option>
+            <option value="grade-3-4">2) 3,4학년 수준 [산과 바다]</option>
+            <option value="grade-5-6">3) 5,6학년 수준 [의생활]</option>
           </select>
         </label>
         <article class="passage-preview" id="passagePreview">
@@ -128,7 +124,7 @@
         <label class="file-drop">
           <input id="transcriptFile" type="file" accept=".txt,text/plain">
           <span>txt 전사파일 선택</span>
-          <small>현재는 txt 파일을 우선 지원하며, 이후 docx/pdf 파서를 추가할 수 있도록 파일 처리 함수를 분리했습니다.</small>
+          <small>학생의 읽기 전사 txt 파일을 업로드하세요.</small>
         </label>
         <article class="file-preview" id="filePreview">
           <strong>업로드된 파일 내용</strong>

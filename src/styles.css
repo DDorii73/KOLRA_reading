@@ -280,7 +280,7 @@ main {
 
 .app-shell {
   display: grid;
-  gap: 1.2rem;
+  gap: 1.5rem;
 }
 
 .page-intro {
@@ -297,11 +297,12 @@ main {
 .workspace-grid {
   display: grid;
   grid-template-columns: 0.85fr 1.15fr;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .panel {
   padding: clamp(1.2rem, 3vw, 2rem);
+  border-top: 5px solid rgba(185, 121, 85, 0.22);
 }
 
 .wide-panel {
@@ -345,6 +346,14 @@ textarea {
   outline: none;
 }
 
+textarea {
+  line-height: 1.75;
+}
+
+textarea[readonly] {
+  background: #fffaf1;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -364,9 +373,9 @@ textarea:focus {
 .passage-preview,
 .file-preview {
   margin: 1rem 0;
-  padding: 1.15rem;
+  padding: 1.25rem;
   color: rgba(77, 53, 37, 0.78);
-  background: rgba(247, 234, 216, 0.58);
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.92), rgba(247, 234, 216, 0.58));
   border: 1px solid rgba(125, 86, 56, 0.12);
   border-radius: var(--radius-md);
 }
@@ -386,6 +395,17 @@ textarea:focus {
   color: var(--sage);
   font-size: 0.9rem;
   font-weight: 800;
+}
+
+.passage-preview p {
+  max-height: 18rem;
+  overflow: auto;
+  margin: 0.4rem 0 0;
+  padding: 1rem;
+  white-space: pre-wrap;
+  line-height: 1.85;
+  background: rgba(255, 253, 248, 0.76);
+  border-radius: var(--radius-sm);
 }
 
 .file-preview pre {
