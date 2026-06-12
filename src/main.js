@@ -327,7 +327,7 @@ function renderAnalysis(analysis) {
   errorTableBody.innerHTML = analysis.errorRows
     .map((row) => `
       <tr>
-        <td>${escapeHtml(row.type)}</td>
+        <td><span class="badge">${escapeHtml(row.type)}</span></td>
         <td>${escapeHtml(row.count)}</td>
         <td>${escapeHtml(row.transcriptExample)}</td>
         <td>${escapeHtml(row.interpretation)}</td>

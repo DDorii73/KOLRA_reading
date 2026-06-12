@@ -115,7 +115,7 @@ function renderTable() {
         <td>${escapeHtml(result.testDate || result.assessmentDate)}</td>
         <td>${escapeHtml(result.readingSpeed || result.readingRate)} 어절/분</td>
         <td><strong>${escapeHtml(result.finalScore)}</strong></td>
-        <td>${escapeHtml(getMainErrorType(result))}</td>
+        <td><span class="badge">${escapeHtml(getMainErrorType(result))}</span></td>
         <td>
           <button class="table-button" type="button" data-result-id="${escapeHtml(result.id)}">상세 보기</button>
         </td>
@@ -145,7 +145,7 @@ function renderErrorAnalysisTable(errorAnalysis = []) {
           ${errorAnalysis
             .map((row) => `
               <tr>
-                <td>${escapeHtml(row.type)}</td>
+                <td><span class="badge">${escapeHtml(row.type)}</span></td>
                 <td>${escapeHtml(row.count)}</td>
                 <td>${escapeHtml(row.transcriptExample)}</td>
                 <td>${escapeHtml(row.interpretation)}</td>
