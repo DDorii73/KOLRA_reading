@@ -71,7 +71,7 @@ main {
 .landing-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   width: min(1180px, calc(100% - 3rem));
   margin: 1.25rem auto 0;
   padding: 0.9rem 1rem;
@@ -107,7 +107,7 @@ main {
 }
 
 .landing-main {
-  padding-top: clamp(2rem, 5vw, 4.5rem);
+  padding-top: clamp(2rem, 6vw, 5rem);
 }
 
 .hero {
@@ -120,22 +120,21 @@ main {
 
 .landing-hero {
   position: relative;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-  justify-content: initial;
-  min-height: auto;
-  text-align: left;
+  grid-template-columns: minmax(0, 720px);
+  justify-content: center;
+  min-height: 62vh;
+  text-align: center;
 }
 
 .landing-hero .hero-copy {
-  display: block;
-  width: auto;
-  min-height: auto;
-  margin: 0;
-  padding: 0;
-  overflow: visible;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 28px;
 }
 
 .landing-hero .hero-description {
@@ -161,8 +160,8 @@ main {
 .landing-hero h1 {
   max-width: none;
   color: var(--text);
-  font-size: clamp(2.65rem, 6vw, 5rem);
-  letter-spacing: -0.07em;
+  font-size: clamp(2rem, 4.5vw, 3.3rem);
+  letter-spacing: -0.06em;
 }
 
 .landing-hero .button.primary {
@@ -177,15 +176,35 @@ main {
 }
 
 .landing-hero .teacher-actions {
-  justify-content: flex-start;
-  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 560px);
+  margin-top: 1.5rem;
 }
 
 .landing-hero .teacher-actions .button {
+  display: grid;
+  gap: 0.25rem;
   min-width: 0;
-  min-height: 3rem;
-  justify-content: center;
-  padding: 0.85rem 1.2rem;
+  min-height: 6.5rem;
+  align-content: center;
+  justify-content: start;
+  padding: 1.2rem;
+  text-align: left;
+  background: var(--surface-muted);
+  border-color: var(--line);
+}
+
+.landing-hero .teacher-actions .button.primary {
+  color: var(--text);
+  background: var(--surface-indigo);
+  border-color: #dbe4ff;
+}
+
+.landing-hero .teacher-actions .button small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .landing-hero .teacher-actions .button::after {
@@ -319,13 +338,13 @@ main {
 }
 
 .landing-hero .auth-panel {
-  align-self: start;
-  width: 100%;
-  margin-top: 0;
-  padding: 1.5rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  justify-content: center;
+  width: min(100%, 420px);
+  margin-top: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .landing-hero .auth-panel h2 {
