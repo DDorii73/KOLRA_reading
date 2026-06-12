@@ -393,6 +393,11 @@ main {
   gap: 1rem;
 }
 
+.page-actions {
+  justify-content: flex-end;
+  min-width: fit-content;
+}
+
 .workspace-grid {
   display: grid;
   grid-template-columns: 1fr;

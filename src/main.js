@@ -1,4 +1,4 @@
-import { requireTeacherAuth } from "./firebaseConfig.js";
+import { clearTeacherSession, requireTeacherAuth } from "./firebaseConfig.js";
 
 const teacherSession = requireTeacherAuth();
 if (!teacherSession) {
@@ -56,6 +56,7 @@ const errorTableBody = document.querySelector("#errorTableBody");
 const reportText = document.querySelector("#reportText");
 const saveMessage = document.querySelector("#saveMessage");
 const tempSaveReportButton = document.querySelector("#tempSaveReportButton");
+const pageLogoutButton = document.querySelector("#pageLogoutButton");
 const startRecordingButton = document.querySelector("#startRecordingButton");
 const stopRecordingButton = document.querySelector("#stopRecordingButton");
 const convertRecordingButton = document.querySelector("#convertRecordingButton");
@@ -357,12 +358,16 @@ function saveAnalysisResult() {
 }
 
 function tempSaveReport() {
-  console.log("학생별 임시저장 보고서:", {
-    studentName: getFormData().studentName,
+  const formData = getFormData();
+  const temporaryData = {
+    ...formData,
+    analysis: latestAnalysis,
     reportText: reportText.value.trim(),
     savedAt: new Date().toISOString()
-  });
-  saveMessage.textContent = "학생별 보고서 임시저장 데이터를 콘솔에서 확인할 수 있습니다.";
+  };
+
+  console.log("학생별 임시저장 데이터:", temporaryData);
+  saveMessage.textContent = "학생별 입력 및 분석 임시저장 데이터를 콘솔에서 확인할 수 있습니다.";
 }
 
 async function requestTranscriptionFromServer() {
@@ -459,6 +464,10 @@ analyzeButton.addEventListener("click", () => {
 
 saveResultButton.addEventListener("click", saveAnalysisResult);
 tempSaveReportButton.addEventListener("click", tempSaveReport);
+pageLogoutButton.addEventListener("click", async () => {
+  await clearTeacherSession();
+  window.location.href = "index.html";
+});
 
 renderInputMethod();
 renderPassage();
