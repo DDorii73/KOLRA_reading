@@ -44,8 +44,13 @@ const passageWordCount = document.querySelector("#passageWordCount");
 const inputMethodControls = document.querySelectorAll('input[name="inputMethod"]');
 const uploadPanel = document.querySelector("#uploadPanel");
 const recordPanel = document.querySelector("#recordPanel");
+const audioUploadPanel = document.querySelector("#audioUploadPanel");
 const transcriptFile = document.querySelector("#transcriptFile");
 const filePreview = document.querySelector("#filePreview");
+const audioFile = document.querySelector("#audioFile");
+const convertUploadedAudioButton = document.querySelector("#convertUploadedAudioButton");
+const audioUploadStatus = document.querySelector("#audioUploadStatus");
+const uploadedAudioPreview = document.querySelector("#uploadedAudioPreview");
 const transcriptInput = document.querySelector("#transcriptText");
 const readingSeconds = document.querySelector("#readingSeconds");
 const analyzeButton = document.querySelector("#analyzeButton");
@@ -74,6 +79,8 @@ let analyserNode = null;
 let meterAnimationId = null;
 let speechRecognition = null;
 let liveTranscript = "";
+let uploadedAudioFile = null;
+let uploadedAudioUrl = "";
 
 assessmentDate.valueAsDate = new Date();
 
@@ -149,6 +156,7 @@ function renderInputMethod() {
   const selectedMethod = document.querySelector('input[name="inputMethod"]:checked')?.value;
   uploadPanel.hidden = selectedMethod !== "upload";
   recordPanel.hidden = selectedMethod !== "record";
+  audioUploadPanel.hidden = selectedMethod !== "audio-upload";
 }
 
 async function extractTranscriptFromFile(file) {
@@ -535,6 +543,23 @@ transcriptFile.addEventListener("change", async (event) => {
   }
 });
 
+audioFile.addEventListener("change", (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+
+  uploadedAudioFile = file;
+
+  if (uploadedAudioUrl) {
+    URL.revokeObjectURL(uploadedAudioUrl);
+  }
+
+  uploadedAudioUrl = URL.createObjectURL(file);
+  uploadedAudioPreview.src = uploadedAudioUrl;
+  uploadedAudioPreview.hidden = false;
+  convertUploadedAudioButton.disabled = false;
+  audioUploadStatus.textContent = `${file.name} 파일을 불러왔습니다. 미리듣기 후 텍스트 변환을 진행할 수 있습니다.`;
+});
+
 startRecordingButton.addEventListener("click", async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -598,6 +623,15 @@ convertRecordingButton.addEventListener("click", async () => {
   }
 
   recordStatus.textContent = "현재 브라우저 전사 결과가 없습니다. Chrome에서 다시 녹음하거나 STT 전사 txt 파일을 업로드해 주세요.";
+});
+
+convertUploadedAudioButton.addEventListener("click", () => {
+  if (!uploadedAudioFile) {
+    audioUploadStatus.textContent = "먼저 녹음파일을 업로드해 주세요.";
+    return;
+  }
+
+  audioUploadStatus.textContent = "업로드 녹음파일의 텍스트 변환은 서버 STT 연동 후 실행됩니다. 현재는 미리듣기와 파일 확인만 지원합니다.";
 });
 
 analyzeButton.addEventListener("click", async () => {

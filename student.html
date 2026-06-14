@@ -104,6 +104,13 @@
               <small>브라우저에서 녹음하고 텍스트 변환 흐름을 준비합니다.</small>
             </span>
           </label>
+          <label class="method-option">
+            <input type="radio" name="inputMethod" value="audio-upload">
+            <span>
+              <strong>녹음파일 업로드</strong>
+              <small>이미 녹음된 음성 파일을 업로드하고 미리듣기합니다.</small>
+            </span>
+          </label>
         </div>
       </section>
 
@@ -145,6 +152,29 @@
           </div>
           <p class="record-status" id="recordStatus">녹음 대기 중</p>
           <audio id="audioPreview" controls hidden></audio>
+        </div>
+      </section>
+
+      <section class="panel wide-panel" id="audioUploadPanel" aria-labelledby="audio-upload-title" hidden>
+        <div class="panel-header">
+          <div>
+            <p class="section-kicker">Audio Upload</p>
+            <h2 id="audio-upload-title">녹음파일 업로드</h2>
+          </div>
+        </div>
+        <div class="record-card">
+          <h3>녹음파일 선택</h3>
+          <p>업로드한 녹음 원본 파일은 Firebase에 저장하지 않습니다. 현재 화면에서 미리듣기하고, 추후 서버 STT 연동 시 텍스트 변환에 사용할 수 있습니다.</p>
+          <label class="file-drop">
+            <input id="audioFile" type="file" accept="audio/*">
+            <span>오디오 파일 선택</span>
+            <small>mp3, wav, m4a, webm 등 브라우저가 재생할 수 있는 오디오 파일을 지원합니다.</small>
+          </label>
+          <div class="button-row">
+            <button class="button ghost" id="convertUploadedAudioButton" type="button" disabled>업로드 파일 → 텍스트 변환</button>
+          </div>
+          <p class="record-status" id="audioUploadStatus">녹음파일을 선택해 주세요.</p>
+          <audio id="uploadedAudioPreview" controls hidden></audio>
         </div>
       </section>
 
