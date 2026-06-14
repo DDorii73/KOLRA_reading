@@ -127,8 +127,11 @@ function renderErrorAnalysisTable(errorAnalysis = []) {
         <thead>
           <tr>
             <th>오류 유형</th>
-            <th>오류 횟수</th>
-            <th>오류 어절</th>
+            <th>원문</th>
+            <th>전사문</th>
+            <th>설명</th>
+            <th>점수 반영 여부</th>
+            <th>지도 방향</th>
           </tr>
         </thead>
         <tbody>
@@ -136,8 +139,11 @@ function renderErrorAnalysisTable(errorAnalysis = []) {
             .map((row) => `
               <tr>
                 <td><span class="badge">${escapeHtml(row.type)}</span></td>
-                <td>${escapeHtml(row.count)}</td>
-                <td>${escapeHtml(row.errorWords || "해당 없음")}</td>
+                <td>${escapeHtml(row.source || "-")}</td>
+                <td>${escapeHtml(row.transcript || row.errorWords || "-")}</td>
+                <td>${escapeHtml(row.description || "-")}</td>
+                <td>${row.scoreImpact ? "반영" : "제외"}</td>
+                <td>${escapeHtml(row.guidance || "-")}</td>
               </tr>
             `)
             .join("")}

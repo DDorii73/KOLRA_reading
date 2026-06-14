@@ -58,6 +58,7 @@ const saveResultButton = document.querySelector("#saveResultButton");
 const readingRate = document.querySelector("#readingRate");
 const errorCount = document.querySelector("#errorCount");
 const fluencyScore = document.querySelector("#fluencyScore");
+const analysisSummary = document.querySelector("#analysisSummary");
 const errorTableBody = document.querySelector("#errorTableBody");
 const reportText = document.querySelector("#reportText");
 const saveMessage = document.querySelector("#saveMessage");
@@ -183,103 +184,345 @@ function calculateReadingRate(totalSyllables, errorSyllables, seconds) {
   return Number(((correctSyllables / seconds) * 10).toFixed(1));
 }
 
-function compareTokens(passage, transcript) {
-  const sourceTokens = passage.trim().split(/\s+/).filter(Boolean);
-  const readTokens = transcript.trim().split(/\s+/).filter(Boolean);
-  const maxLength = Math.max(sourceTokens.length, readTokens.length);
-  const substitutions = [];
-  const omissionExamples = [];
-  const insertionExamples = [];
-  let omissions = 0;
-  let insertions = 0;
+const fillerWords = new Set(["음", "어", "음음", "어어", "그러니까"]);
+const pronunciationAllowances = {
+  김밥을: ["김빠블", "김빱을"],
+  김밥: ["김빱", "김빰"],
+  필요한: ["피료한"],
+  김을: ["기믈"],
+  밥을: ["바블"],
+  볶은: ["보끈", "뽀끈"],
+  당근을: ["당그늘"],
+  길게: ["길케"],
+  썰어: ["써러"],
+  얹어준다: ["언저준다"],
+  볶아서: ["보까서", "뽀까서"],
+  계란은: ["계라는"],
+  넓게: ["널께"],
+  익으면: ["이그면"],
+  않도록: ["안토록"],
+  않게: ["안케"],
+  조심해야: ["조시매야"],
+  손바닥으로: ["손바다그로"],
+  놓고: ["노코"],
+  올려놓고: ["올려노코"],
+  한입크기로: ["한닙크기로"],
+  사람들은: ["사람드른"],
+  선호하고: ["서노하고"],
+  선호한다: ["서노한다"],
+  유사한: ["유사한"],
+  점은: ["저믄"],
+  일을: ["이를"],
+  있고: ["이꼬"],
+  있다: ["이따"]
+};
 
-  for (let index = 0; index < maxLength; index += 1) {
-    const source = sourceTokens[index];
-    const read = readTokens[index];
+function normalizeToken(token) {
+  return String(token ?? "")
+    .replace(/[.,!?;:()[\]{}"“”'‘’·…]/g, "")
+    .replace(/[~\-—–]+/g, "")
+    .replace(/[ㄱ-ㅎㅏ-ㅣ]/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+}
 
-    if (source && !read) {
-      omissions += 1;
-      omissionExamples.push(source);
-    } else if (!source && read) {
-      insertions += 1;
-      insertionExamples.push(read);
-    } else if (source !== read) {
-      substitutions.push({ expected: source, actual: read });
+function tokenizeText(text) {
+  return text
+    .replace(/^[\d]+[-.)]?\s*/gm, "")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function isPronunciationAllowed(sourceToken, readToken) {
+  const source = normalizeToken(sourceToken);
+  const read = normalizeToken(readToken);
+  if (!source || !read) return false;
+  if (source === read) return true;
+  return (pronunciationAllowances[source] || []).some((allowed) => normalizeToken(allowed) === read);
+}
+
+function levenshteinDistance(a, b) {
+  const left = normalizeToken(a);
+  const right = normalizeToken(b);
+  const matrix = Array.from({ length: left.length + 1 }, () => Array(right.length + 1).fill(0));
+
+  for (let i = 0; i <= left.length; i += 1) matrix[i][0] = i;
+  for (let j = 0; j <= right.length; j += 1) matrix[0][j] = j;
+
+  for (let i = 1; i <= left.length; i += 1) {
+    for (let j = 1; j <= right.length; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
     }
   }
 
+  return matrix[left.length][right.length];
+}
+
+function tokenSimilarity(sourceToken, readToken) {
+  const source = normalizeToken(sourceToken);
+  const read = normalizeToken(readToken);
+  if (!source || !read) return 0;
+  if (isPronunciationAllowed(source, read)) return 1;
+  const maxLength = Math.max(source.length, read.length);
+  return 1 - levenshteinDistance(source, read) / maxLength;
+}
+
+function detectLeadingRepetition(token) {
+  const normalized = String(token ?? "").replace(/[~\-—–]+/g, "");
+  const jamoMatch = normalized.match(/^([ㄱ-ㅎ])\1+(.*)$/);
+  if (jamoMatch?.[2]) {
+    return {
+      normalized: jamoMatch[2],
+      repeatedPart: jamoMatch[1],
+      subtype: "첫음절 반복"
+    };
+  }
+
+  const syllableMatch = normalized.match(/^([가-힣])\1+(.*)$/);
+  if (syllableMatch?.[2]) {
+    return {
+      normalized: syllableMatch[2],
+      repeatedPart: syllableMatch[1],
+      subtype: "부분어절 반복"
+    };
+  }
+
+  return null;
+}
+
+function preprocessTranscript(transcript) {
+  const rawTokens = tokenizeText(transcript);
+  const tokens = [];
+  const events = [];
+
+  for (let index = 0; index < rawTokens.length; index += 1) {
+    const rawToken = rawTokens[index];
+    const normalized = normalizeToken(rawToken);
+
+    if (!normalized || fillerWords.has(normalized)) {
+      events.push({
+        type: "머뭇거림",
+        source: "",
+        transcript: rawToken,
+        description: "간투어 또는 끌기 표현으로 분리했습니다.",
+        scoreImpact: false,
+        guidance: "읽기 전 호흡을 정리하고 의미 단위로 천천히 시작하도록 지도합니다."
+      });
+      continue;
+    }
+
+    if (normalized === "아니" && tokens.length && rawTokens[index + 1]) {
+      const previous = tokens.pop();
+      const corrected = rawTokens[index + 1];
+      events.push({
+        type: "자기교정",
+        source: previous.raw,
+        transcript: `${previous.raw} 아니 ${corrected}`,
+        description: "처음 읽은 내용을 스스로 고쳐 읽었습니다. 최종 산출어를 기준으로 정렬합니다.",
+        scoreImpact: false,
+        guidance: "자기점검 전략은 긍정적으로 보되, 처음 읽을 때의 정확성을 높이는 연습을 병행합니다."
+      });
+      tokens.push({ raw: corrected, normalized: normalizeToken(corrected) });
+      index += 1;
+      continue;
+    }
+
+    const repetition = detectLeadingRepetition(rawToken);
+    if (repetition) {
+      events.push({
+        type: "반복",
+        source: "",
+        transcript: rawToken,
+        description: `${repetition.subtype}으로 감지했습니다. 반복 부분을 제거한 뒤 정렬합니다.`,
+        scoreImpact: false,
+        guidance: "짧은 구 단위 반복 읽기로 시작 지연과 부분어절 반복을 줄입니다."
+      });
+      tokens.push({ raw: repetition.normalized, normalized: normalizeToken(repetition.normalized) });
+      continue;
+    }
+
+    tokens.push({ raw: rawToken, normalized });
+  }
+
+  return { tokens, events };
+}
+
+function alignTokens(sourceTokens, readTokenObjects) {
+  const readTokens = readTokenObjects.map((item) => item.raw);
+  const rows = sourceTokens.length + 1;
+  const cols = readTokens.length + 1;
+  const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
+  const back = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+  for (let i = 1; i < rows; i += 1) {
+    dp[i][0] = i;
+    back[i][0] = "delete";
+  }
+  for (let j = 1; j < cols; j += 1) {
+    dp[0][j] = j;
+    back[0][j] = "insert";
+  }
+
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const similarity = tokenSimilarity(sourceTokens[i - 1], readTokens[j - 1]);
+      const replaceCost = similarity >= 0.72 ? 0.25 : similarity >= 0.45 ? 0.65 : 1.15;
+      const candidates = [
+        { value: dp[i - 1][j - 1] + replaceCost, op: "replace" },
+        { value: dp[i - 1][j] + 1, op: "delete" },
+        { value: dp[i][j - 1] + 1, op: "insert" }
+      ].sort((a, b) => a.value - b.value);
+
+      dp[i][j] = candidates[0].value;
+      back[i][j] = candidates[0].op;
+    }
+  }
+
+  const operations = [];
+  let i = sourceTokens.length;
+  let j = readTokens.length;
+
+  while (i > 0 || j > 0) {
+    const op = back[i][j];
+    if (op === "replace") {
+      operations.unshift({ op, source: sourceTokens[i - 1], transcript: readTokens[j - 1] });
+      i -= 1;
+      j -= 1;
+    } else if (op === "delete") {
+      operations.unshift({ op, source: sourceTokens[i - 1], transcript: "" });
+      i -= 1;
+    } else {
+      operations.unshift({ op: "insert", source: "", transcript: readTokens[j - 1] });
+      j -= 1;
+    }
+  }
+
+  return operations;
+}
+
+function compareTokens(passage, transcript) {
+  const sourceTokens = tokenizeText(passage);
+  const { tokens: readTokens, events } = preprocessTranscript(transcript);
+  const operations = alignTokens(sourceTokens, readTokens);
+  const rows = [...events];
+  let correctWords = 0;
+  let pronunciationCount = 0;
+  let actualErrorCount = 0;
+  let errorSyllables = 0;
+
+  operations.forEach(({ op, source, transcript: read }) => {
+    if (op === "replace") {
+      if (normalizeToken(source) === normalizeToken(read)) {
+        correctWords += 1;
+        return;
+      }
+
+      if (isPronunciationAllowed(source, read)) {
+        correctWords += 1;
+        pronunciationCount += 1;
+        rows.push({
+          type: "발음 허용",
+          source,
+          transcript: read,
+          description: "한국어 음운 변동 또는 허용 발음으로 판단해 오류 점수에서 제외했습니다.",
+          scoreImpact: false,
+          guidance: "자연스러운 발음 변화로 보되, 원문 표기와 발음 차이를 교사가 확인합니다."
+        });
+        return;
+      }
+
+      actualErrorCount += 1;
+      errorSyllables += countSyllables(source);
+      rows.push({
+        type: "대치",
+        source,
+        transcript: read,
+        description: "원문 어절을 다른 형태 또는 의미의 어절로 읽었습니다.",
+        scoreImpact: true,
+        guidance: "원문을 눈으로 확인하며 유사 낱말과 조사·어미를 변별하는 연습을 합니다."
+      });
+      return;
+    }
+
+    if (op === "delete") {
+      actualErrorCount += 1;
+      errorSyllables += countSyllables(source);
+      rows.push({
+        type: "생략",
+        source,
+        transcript: "",
+        description: "원문에 있는 어절을 읽지 않은 것으로 정렬되었습니다.",
+        scoreImpact: true,
+        guidance: "손가락 짚기, 줄 따라 읽기, 어절 단위 끊어 읽기를 활용합니다."
+      });
+      return;
+    }
+
+    actualErrorCount += 1;
+    errorSyllables += countSyllables(read);
+    rows.push({
+      type: "첨가",
+      source: "",
+      transcript: read,
+      description: "원문에 없는 의미 있는 어절을 추가해 읽었습니다.",
+      scoreImpact: true,
+      guidance: "추측하여 읽지 않고 원문을 정확히 확인하도록 지도합니다."
+    });
+  });
+
+  const counts = rows.reduce(
+    (acc, row) => {
+      if (row.type === "발음 허용") acc.pronunciation += 1;
+      if (row.type === "반복") acc.repetition += 1;
+      if (row.type === "자기교정") acc.selfCorrection += 1;
+      if (row.type === "머뭇거림") acc.hesitation += 1;
+      if (row.scoreImpact) acc[row.type] = (acc[row.type] || 0) + 1;
+      return acc;
+    },
+    { pronunciation: 0, repetition: 0, selfCorrection: 0, hesitation: 0 }
+  );
+
   return {
-    omissions,
-    insertions,
-    substitutions: substitutions.length,
-    examples: {
-      omission: omissionExamples.slice(0, 3),
-      insertion: insertionExamples.slice(0, 3),
-      substitution: substitutions.slice(0, 3)
+    rows,
+    summary: {
+      totalWords: sourceTokens.length,
+      correctWords,
+      pronunciationCount,
+      actualErrorCount,
+      repetitionCount: counts.repetition,
+      selfCorrectionCount: counts.selfCorrection,
+      hesitationCount: counts.hesitation
     },
-    errorWords: {
-      omission: omissionExamples,
-      insertion: insertionExamples,
-      substitution: substitutions.map(({ expected, actual }) => `${expected}→${actual}`)
-    },
-    errorSyllables:
-      omissionExamples.reduce((sum, word) => sum + countSyllables(word), 0) +
-      insertionExamples.reduce((sum, word) => sum + countSyllables(word), 0) +
-      substitutions.reduce((sum, { expected }) => sum + countSyllables(expected), 0)
+    counts,
+    errorSyllables
   };
 }
 
-function getMainErrorType(errorTypes) {
-  const entries = [
-    ["생략", errorTypes.omissions],
-    ["삽입", errorTypes.insertions],
-    ["대치", errorTypes.substitutions]
-  ];
-  const [type, count] = entries.sort((a, b) => b[1] - a[1])[0];
+function getMainErrorType(analysisResult) {
+  const entries = ["생략", "첨가", "대치", "반복", "자기교정"]
+    .map((type) => [type, analysisResult.counts[type] || 0])
+    .sort((a, b) => b[1] - a[1]);
+  const [type, count] = entries[0];
   return count > 0 ? `${type} 오류` : "두드러진 오류 없음";
 }
 
-function formatErrorWords(type, errorTypes) {
-  if (type === "생략") {
-    return errorTypes.errorWords.omission.length ? errorTypes.errorWords.omission.join(", ") : "해당 없음";
-  }
-
-  if (type === "삽입") {
-    return errorTypes.errorWords.insertion.length ? errorTypes.errorWords.insertion.join(", ") : "해당 없음";
-  }
-
-  return errorTypes.errorWords.substitution.length ? errorTypes.errorWords.substitution.join(", ") : "해당 없음";
-}
-
-function createErrorRows(errorTypes) {
-  return [
-    {
-      type: "생략",
-      count: errorTypes.omissions,
-      errorWords: formatErrorWords("생략", errorTypes)
-    },
-    {
-      type: "삽입",
-      count: errorTypes.insertions,
-      errorWords: formatErrorWords("삽입", errorTypes)
-    },
-    {
-      type: "대치",
-      count: errorTypes.substitutions,
-      errorWords: formatErrorWords("대치", errorTypes)
-    }
-  ];
-}
-
-function createReport({ formData, totalSyllables, errorSyllables, rate, errorTypes }) {
-  const mainErrorType = getMainErrorType(errorTypes);
+function createReport({ formData, totalSyllables, errorSyllables, rate, comparison }) {
+  const mainErrorType = getMainErrorType(comparison);
   const studentName = formData.studentName || "학생 A";
   const passageTitle = formData.passageTitle || "선택한 지문";
   const readingSecondsText = formData.seconds || "미입력";
+  const summary = comparison.summary;
 
   return [
     `다음은 ${passageTitle} 지문을 활용한 문단글 읽기 유창성 검사 결과 해석 예시이다.`,
-    `${studentName}는 ${passageTitle} 지문을 읽는 과정에서 전체 문단 음절 수 ${totalSyllables}음절 중 ${errorSyllables}음절에서 오류를 보였으며, 전체 소요시간은 ${readingSecondsText}초였다. 이에 따라 10초당 정확하게 읽은 음절 수는 [(${totalSyllables}-${errorSyllables})/${readingSecondsText}]×10으로 산출되며, 약 ${rate}음절로 계산된다. ${studentName}의 오류 유형을 분석한 결과, ${mainErrorType}이 주요하게 나타났으며 생략 ${errorTypes.omissions}회, 삽입 ${errorTypes.insertions}회, 대치 ${errorTypes.substitutions}회가 나타났다.`
+    `${studentName}는 ${passageTitle} 지문을 읽는 과정에서 전체 문단 음절 수 ${totalSyllables}음절 중 ${errorSyllables}음절에서 점수 반영 오류를 보였으며, 전체 소요시간은 ${readingSecondsText}초였다. 이에 따라 10초당 정확하게 읽은 음절 수는 [(${totalSyllables}-${errorSyllables})/${readingSecondsText}]×10으로 산출되며, 약 ${rate}음절로 계산된다.`,
+    `정렬 분석 결과 전체 어절 ${summary.totalWords}개 중 정확하게 읽은 어절은 ${summary.correctWords}개이며, 발음 허용 ${summary.pronunciationCount}회, 실제 오류 ${summary.actualErrorCount}회, 반복 ${summary.repetitionCount}회, 자기교정 ${summary.selfCorrectionCount}회, 머뭇거림 ${summary.hesitationCount}회가 관찰되었다. 주요 오류 패턴은 ${mainErrorType}으로 요약된다.`
   ].join("\n ");
 }
 
@@ -287,12 +530,11 @@ function analyzeReadingFluency(formData) {
   // TODO: Move advanced OpenAI-assisted analysis to Firebase Functions.
   const wordCount = countWords(formData.passage);
   const totalSyllables = countSyllables(formData.passage);
-  const errorTypes = compareTokens(formData.passage, formData.transcript);
-  const totalErrors = errorTypes.omissions + errorTypes.insertions + errorTypes.substitutions;
-  const errorSyllables = errorTypes.errorSyllables;
+  const comparison = compareTokens(formData.passage, formData.transcript);
+  const totalErrors = comparison.summary.actualErrorCount;
+  const errorSyllables = comparison.errorSyllables;
   const rate = calculateReadingRate(totalSyllables, errorSyllables, Number(formData.seconds));
   const score = rate;
-  const errorRows = createErrorRows(errorTypes);
 
   return {
     wordCount,
@@ -301,9 +543,10 @@ function analyzeReadingFluency(formData) {
     readingRate: rate,
     totalErrors,
     score,
-    errorTypes,
-    errorRows,
-    report: createReport({ formData, totalSyllables, errorSyllables, rate, errorTypes })
+    errorTypes: comparison.counts,
+    summary: comparison.summary,
+    errorRows: comparison.rows,
+    report: createReport({ formData, totalSyllables, errorSyllables, rate, comparison })
   };
 }
 
@@ -321,6 +564,7 @@ async function generateReportWithGpt(formData, analysis) {
         errorSyllables: analysis.errorSyllables,
         readingRate: analysis.readingRate,
         totalErrors: analysis.totalErrors,
+        summary: analysis.summary,
         errorRows: analysis.errorRows
       }
     })
@@ -339,13 +583,25 @@ function renderAnalysis(analysis) {
   errorCount.textContent = analysis.totalErrors;
   fluencyScore.textContent = analysis.score;
   reportText.value = analysis.report;
+  analysisSummary.innerHTML = `
+    <span>전체 어절 수 <strong>${analysis.summary.totalWords}</strong></span>
+    <span>정확 어절 수 <strong>${analysis.summary.correctWords}</strong></span>
+    <span>발음 허용 <strong>${analysis.summary.pronunciationCount}</strong></span>
+    <span>실제 오류 <strong>${analysis.summary.actualErrorCount}</strong></span>
+    <span>반복 <strong>${analysis.summary.repetitionCount}</strong></span>
+    <span>자기교정 <strong>${analysis.summary.selfCorrectionCount}</strong></span>
+    <span>머뭇거림 <strong>${analysis.summary.hesitationCount}</strong></span>
+  `;
 
   errorTableBody.innerHTML = analysis.errorRows
     .map((row) => `
       <tr>
         <td><span class="badge">${escapeHtml(row.type)}</span></td>
-        <td>${escapeHtml(row.count)}</td>
-        <td>${escapeHtml(row.errorWords)}</td>
+        <td>${escapeHtml(row.source || "-")}</td>
+        <td>${escapeHtml(row.transcript || "-")}</td>
+        <td>${escapeHtml(row.description)}</td>
+        <td>${row.scoreImpact ? "반영" : "제외"}</td>
+        <td>${escapeHtml(row.guidance)}</td>
       </tr>
     `)
     .join("");
