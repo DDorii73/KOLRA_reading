@@ -1,4 +1,4 @@
-import { clearTeacherSession, requireTeacherAuth } from "./firebaseConfig.js";
+import { clearTeacherSession, requireTeacherAuth, saveAssessmentResult } from "./firebaseConfig.js";
 import ragReference from "../rag.md?raw";
 
 const teacherSession = requireTeacherAuth();
@@ -636,13 +636,15 @@ function buildAnalysisResultData(formData, analysis) {
     transcriptText: formData.transcript,
     readingSpeed: analysis.readingRate,
     errorAnalysis: analysis.errorRows,
+    mainErrorType: getMainErrorType({ counts: analysis.errorTypes }),
+    summary: analysis.summary,
     finalScore: analysis.score,
     reportText: reportText.value.trim(),
     createdAt: new Date().toISOString()
   };
 }
 
-function saveAnalysisResult() {
+async function saveAnalysisResult() {
   const formData = getFormData();
 
   if (!latestAnalysis) {
@@ -650,9 +652,15 @@ function saveAnalysisResult() {
     return;
   }
 
+  if (!formData.studentName || !formData.assessmentDate || !formData.passageTitle) {
+    saveMessage.textContent = "학생 이름, 검사 날짜, 검사 문단을 확인한 뒤 저장해 주세요.";
+    return;
+  }
+
   const analysisResultData = buildAnalysisResultData(formData, latestAnalysis);
-  console.log("Firestore 저장 예정 데이터:", analysisResultData);
-  saveMessage.textContent = "저장 예정 데이터를 콘솔에서 확인할 수 있습니다.";
+  const savedResult = await saveAssessmentResult(analysisResultData);
+  console.log("저장된 분석 결과:", savedResult);
+  saveMessage.textContent = "분석 결과가 저장되었습니다. 교사 모니터링 페이지에서 확인할 수 있습니다.";
 }
 
 function tempSaveReport() {
