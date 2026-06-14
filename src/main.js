@@ -62,12 +62,18 @@ const startRecordingButton = document.querySelector("#startRecordingButton");
 const stopRecordingButton = document.querySelector("#stopRecordingButton");
 const convertRecordingButton = document.querySelector("#convertRecordingButton");
 const recordStatus = document.querySelector("#recordStatus");
+const audioMeter = document.querySelector("#audioMeter");
 const audioPreview = document.querySelector("#audioPreview");
 
 let latestAnalysis = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordedAudioUrl = "";
+let audioContext = null;
+let analyserNode = null;
+let meterAnimationId = null;
+let speechRecognition = null;
+let liveTranscript = "";
 
 assessmentDate.valueAsDate = new Date();
 
@@ -401,8 +407,110 @@ function tempSaveReport() {
 async function requestTranscriptionFromServer() {
   // TODO: Send the in-memory audio blob to Firebase Functions and return text.
   // Do not persist the original recording file in Firebase Storage or Firestore.
+  if (liveTranscript.trim()) return liveTranscript.trim();
   if (!recordedChunks.length) return "";
   return "";
+}
+
+function createSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "ko-KR";
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.addEventListener("result", (event) => {
+    let finalText = "";
+    let interimText = "";
+
+    for (let index = 0; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      const transcript = result[0]?.transcript?.trim();
+      if (!transcript) continue;
+
+      if (result.isFinal) {
+        finalText += `${transcript} `;
+      } else {
+        interimText += `${transcript} `;
+      }
+    }
+
+    liveTranscript = `${finalText}${interimText}`.trim();
+    if (liveTranscript) {
+      transcriptInput.value = liveTranscript;
+    }
+  });
+
+  recognition.addEventListener("error", () => {
+    recordStatus.textContent = "녹음 중입니다. 브라우저 전사가 중단되면 녹음 후 전사 파일을 업로드해 주세요.";
+  });
+
+  return recognition;
+}
+
+function startSpeechRecognition() {
+  speechRecognition = createSpeechRecognition();
+  if (!speechRecognition) {
+    recordStatus.textContent = "녹음 중... 현재 브라우저는 실시간 전사를 지원하지 않습니다.";
+    return;
+  }
+
+  try {
+    speechRecognition.start();
+  } catch {
+    // Some browsers throw if recognition is already starting.
+  }
+}
+
+function stopSpeechRecognition() {
+  if (!speechRecognition) return;
+  try {
+    speechRecognition.stop();
+  } catch {
+    // Ignore stop errors from browser-specific recognition state.
+  }
+}
+
+function startAudioMeter(stream) {
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) return;
+
+  audioContext = new AudioContextConstructor();
+  analyserNode = audioContext.createAnalyser();
+  analyserNode.fftSize = 256;
+
+  const source = audioContext.createMediaStreamSource(stream);
+  source.connect(analyserNode);
+
+  const samples = new Uint8Array(analyserNode.frequencyBinCount);
+
+  function updateMeter() {
+    analyserNode.getByteFrequencyData(samples);
+    const average = samples.reduce((sum, value) => sum + value, 0) / samples.length;
+    const level = Math.min(100, Math.round((average / 140) * 100));
+    audioMeter.style.setProperty("--level", `${level}%`);
+    audioMeter.classList.add("is-active");
+    meterAnimationId = requestAnimationFrame(updateMeter);
+  }
+
+  updateMeter();
+}
+
+function stopAudioMeter() {
+  if (meterAnimationId) {
+    cancelAnimationFrame(meterAnimationId);
+    meterAnimationId = null;
+  }
+
+  audioMeter.style.setProperty("--level", "0%");
+  audioMeter.classList.remove("is-active");
+
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
 }
 
 birthDate.addEventListener("change", updateChronologicalAge);
@@ -432,6 +540,7 @@ startRecordingButton.addEventListener("click", async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream);
     recordedChunks = [];
+    liveTranscript = "";
 
     if (recordedAudioUrl) {
       URL.revokeObjectURL(recordedAudioUrl);
@@ -444,20 +553,29 @@ startRecordingButton.addEventListener("click", async () => {
 
     mediaRecorder.addEventListener("stop", () => {
       stream.getTracks().forEach((track) => track.stop());
+      stopAudioMeter();
+      stopSpeechRecognition();
       const audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
       recordedAudioUrl = URL.createObjectURL(audioBlob);
       audioPreview.src = recordedAudioUrl;
       audioPreview.hidden = false;
       convertRecordingButton.disabled = false;
-      recordStatus.textContent = "녹음 완료 - 미리듣기가 준비되었습니다. 원본 파일은 Firebase에 저장하지 않습니다.";
+      recordStatus.textContent = liveTranscript
+        ? "녹음 완료 - 전사 텍스트가 입력되었습니다. 필요하면 수정해 주세요."
+        : "녹음 완료 - 미리듣기가 준비되었습니다. 브라우저 전사가 없으면 전사 파일 업로드 또는 서버 STT 연동이 필요합니다.";
     });
 
+    const supportsSpeechRecognition = Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
     mediaRecorder.start();
+    startAudioMeter(stream);
+    startSpeechRecognition();
     startRecordingButton.disabled = true;
     stopRecordingButton.disabled = false;
-    convertRecordingButton.disabled = true;
+    convertRecordingButton.disabled = false;
     audioPreview.hidden = true;
-    recordStatus.textContent = "녹음 중...";
+    recordStatus.textContent = supportsSpeechRecognition
+      ? "녹음 중... 마이크 입력이 감지되면 아래 막대가 움직이고 전사 텍스트가 표시됩니다."
+      : "녹음 중... 마이크 입력이 감지되면 아래 막대가 움직입니다. 현재 브라우저는 실시간 전사를 지원하지 않습니다.";
   } catch {
     recordStatus.textContent = "브라우저 마이크 권한을 확인해 주세요.";
   }
@@ -473,8 +591,13 @@ stopRecordingButton.addEventListener("click", () => {
 
 convertRecordingButton.addEventListener("click", async () => {
   const convertedText = await requestTranscriptionFromServer();
-  transcriptInput.value = convertedText || "[텍스트 변환 준비됨] Firebase Functions 연동 후 녹음 전사 결과가 이곳에 표시됩니다.";
-  recordStatus.textContent = "녹음 → 텍스트 변환 함수 구조가 준비되었습니다.";
+  if (convertedText) {
+    transcriptInput.value = convertedText;
+    recordStatus.textContent = "녹음 전사 텍스트를 전사 영역에 반영했습니다.";
+    return;
+  }
+
+  recordStatus.textContent = "현재 브라우저 전사 결과가 없습니다. Chrome에서 다시 녹음하거나 STT 전사 txt 파일을 업로드해 주세요.";
 });
 
 analyzeButton.addEventListener("click", async () => {
