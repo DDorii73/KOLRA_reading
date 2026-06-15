@@ -379,9 +379,9 @@ function preprocessTranscript(transcript) {
         type: "자기교정",
         source: previous.raw,
         transcript: `${previous.raw} 아니 ${corrected}`,
-        description: "처음 읽은 내용을 스스로 고쳐 읽었습니다. 최종 산출어를 기준으로 정렬합니다.",
-        scoreImpact: false,
-        errorSyllables: 0,
+        description: "처음 읽은 내용을 스스로 고쳐 읽었습니다. 최종 산출어로 정렬하되 자기교정 발생 자체는 점수에 반영합니다.",
+        scoreImpact: true,
+        errorSyllables: Math.max(countSyllables(previous.raw), 1),
         guidance: "자기점검 전략은 긍정적으로 보되, 처음 읽을 때의 정확성을 높이는 연습을 병행합니다."
       });
       tokens.push({ raw: corrected, normalized: normalizeToken(corrected) });
@@ -536,7 +536,7 @@ function compareTokens(passage, transcript) {
     { repetition: 0, selfCorrection: 0 }
   );
 
-  const actualErrorCount = ["생략", "첨가", "대치", "반복"].reduce((sum, type) => {
+  const actualErrorCount = ["생략", "첨가", "대치", "반복", "자기교정"].reduce((sum, type) => {
     return sum + (counts[type] || 0);
   }, 0);
 
@@ -569,11 +569,12 @@ function createReport({ formData, totalSyllables, errorSyllables, rate, comparis
   const passageTitle = formData.passageTitle || "선택한 지문";
   const readingSecondsText = formData.seconds || "미입력";
   const summary = comparison.summary;
+  const correctSyllables = Math.max(totalSyllables - errorSyllables, 0);
 
   return [
     `다음은 ${passageTitle} 지문을 활용한 문단글 읽기 유창성 검사 결과 해석 예시이다.`,
     `${studentName}는 ${passageTitle} 지문을 읽는 과정에서 전체 문단 음절 수 ${totalSyllables}음절 중 ${errorSyllables}음절에서 점수 반영 오류를 보였으며, 전체 소요시간은 ${readingSecondsText}초였다. 이에 따라 10초당 정확하게 읽은 음절 수는 [(${totalSyllables}-${errorSyllables})/${readingSecondsText}]×10으로 산출되며, 약 ${rate}음절로 계산된다.`,
-    `정렬 분석 결과 전체 어절 ${summary.totalWords}개 중 정확하게 읽은 어절은 ${summary.correctWords}개이며, 발음 허용 ${summary.pronunciationCount}회, 실제 오류 ${summary.actualErrorCount}회, 반복 ${summary.repetitionCount}회, 자기교정 ${summary.selfCorrectionCount}회가 관찰되었다. 주요 오류 패턴은 ${mainErrorType}으로 요약된다.`
+    `정렬 분석 결과 전체 음절 ${totalSyllables}개 중 정확하게 읽은 음절은 ${correctSyllables}개이며, 발음 허용 ${summary.pronunciationCount}회, 실제 오류 ${summary.actualErrorCount}회, 반복 ${summary.repetitionCount}회, 자기교정 ${summary.selfCorrectionCount}회가 관찰되었다. 주요 오류 패턴은 ${mainErrorType}으로 요약된다.`
   ].join("\n ");
 }
 
@@ -595,7 +596,11 @@ function analyzeReadingFluency(formData) {
     totalErrors,
     score,
     errorTypes: comparison.counts,
-    summary: comparison.summary,
+    summary: {
+      ...comparison.summary,
+      totalSyllables,
+      correctSyllables: Math.max(totalSyllables - errorSyllables, 0)
+    },
     errorRows: comparison.rows,
     report: createReport({ formData, totalSyllables, errorSyllables, rate, comparison })
   };
@@ -635,8 +640,8 @@ function renderAnalysis(analysis) {
   fluencyScore.textContent = analysis.score;
   reportText.value = analysis.report;
   analysisSummary.innerHTML = `
-    <span>전체 어절 수 <strong>${analysis.summary.totalWords}</strong></span>
-    <span>정확 어절 수 <strong>${analysis.summary.correctWords}</strong></span>
+    <span>전체 음절 수 <strong>${analysis.summary.totalSyllables}</strong></span>
+    <span>정확 음절 수 <strong>${analysis.summary.correctSyllables}</strong></span>
     <span>발음 허용 <strong>${analysis.summary.pronunciationCount}</strong></span>
     <span>실제 오류 <strong>${analysis.summary.actualErrorCount}</strong></span>
     <span>반복 <strong>${analysis.summary.repetitionCount}</strong></span>
@@ -650,7 +655,7 @@ function renderAnalysis(analysis) {
         <td>${escapeHtml(row.source || "-")}</td>
         <td>${escapeHtml(row.transcript || "-")}</td>
         <td>${escapeHtml(row.description)}</td>
-        <td>${row.scoreImpact ? "반영" : "제외"}</td>
+        <td>${row.scoreImpact ? "-1" : "0"}</td>
         <td>${escapeHtml(row.guidance)}</td>
       </tr>
     `)

@@ -130,7 +130,7 @@ function renderErrorAnalysisTable(errorAnalysis = []) {
             <th>원문</th>
             <th>전사문</th>
             <th>설명</th>
-            <th>점수 반영 여부</th>
+            <th>점수</th>
             <th>지도 방향</th>
           </tr>
         </thead>
@@ -142,7 +142,7 @@ function renderErrorAnalysisTable(errorAnalysis = []) {
                 <td>${escapeHtml(row.source || "-")}</td>
                 <td>${escapeHtml(row.transcript || row.errorWords || "-")}</td>
                 <td>${escapeHtml(row.description || "-")}</td>
-                <td>${row.scoreImpact ? "반영" : "제외"}</td>
+                <td>${row.scoreImpact ? "-1" : "0"}</td>
                 <td>${escapeHtml(row.guidance || "-")}</td>
               </tr>
             `)
