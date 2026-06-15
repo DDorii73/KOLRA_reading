@@ -228,6 +228,8 @@ function normalizeToken(token) {
 
 function tokenizeText(text) {
   return text
+    .replace(/([^\s])아니/g, "$1 아니")
+    .replace(/아니([^\s])/g, "아니 $1")
     .replace(/^[\d]+[-.)]?\s*/gm, "")
     .split(/\s+/)
     .map((token) => token.trim())
@@ -273,14 +275,51 @@ function tokenSimilarity(sourceToken, readToken) {
   return 1 - levenshteinDistance(source, read) / maxLength;
 }
 
+function isSubsequence(shorter, longer) {
+  let index = 0;
+  for (const char of longer) {
+    if (char === shorter[index]) index += 1;
+    if (index === shorter.length) return true;
+  }
+  return false;
+}
+
+function classifyReplacement(sourceToken, readToken) {
+  const source = normalizeToken(sourceToken);
+  const read = normalizeToken(readToken);
+
+  if (source && read && isSubsequence(read, source) && read.length < source.length) {
+    return {
+      type: "생략",
+      description: "원문 어절의 일부 음절 또는 형태소가 빠진 것으로 판단했습니다.",
+      guidance: "빠뜨린 음절과 조사·어미를 확인하며 어절 단위로 정확히 읽도록 지도합니다."
+    };
+  }
+
+  if (source && read && isSubsequence(source, read) && source.length < read.length) {
+    return {
+      type: "첨가",
+      description: "원문 어절에 불필요한 음절 또는 형태가 추가된 것으로 판단했습니다.",
+      guidance: "원문을 확인하며 불필요한 음절을 덧붙이지 않도록 지도합니다."
+    };
+  }
+
+  return {
+    type: "대치",
+    description: "원문 어절을 다른 형태 또는 의미의 어절로 읽었습니다.",
+    guidance: "원문을 눈으로 확인하며 유사 낱말과 조사·어미를 변별하는 연습을 합니다."
+  };
+}
+
 function detectLeadingRepetition(token) {
   const normalized = String(token ?? "").replace(/[~\-—–]+/g, "");
   const jamoMatch = normalized.match(/^([ㄱ-ㅎ])\1+(.*)$/);
   if (jamoMatch?.[2]) {
+    const cleaned = removeExtraInitialSyllable(jamoMatch[2]);
     return {
-      normalized: jamoMatch[2],
+      normalized: cleaned,
       repeatedPart: jamoMatch[1],
-      subtype: "첫음절 반복"
+      subtype: "음소반복"
     };
   }
 
@@ -289,11 +328,26 @@ function detectLeadingRepetition(token) {
     return {
       normalized: syllableMatch[2],
       repeatedPart: syllableMatch[1],
-      subtype: "부분어절 반복"
+      subtype: "음절반복"
     };
   }
 
   return null;
+}
+
+function getInitialConsonant(syllable) {
+  const code = syllable.charCodeAt(0) - 0xac00;
+  if (code < 0 || code > 11171) return "";
+  const initials = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  return initials[Math.floor(code / 588)] || "";
+}
+
+function removeExtraInitialSyllable(token) {
+  const chars = [...token];
+  if (chars.length < 2) return token;
+  const firstInitial = getInitialConsonant(chars[0]);
+  const secondInitial = getInitialConsonant(chars[1]);
+  return firstInitial && firstInitial === secondInitial ? chars.slice(1).join("") : token;
 }
 
 function preprocessTranscript(transcript) {
@@ -307,12 +361,13 @@ function preprocessTranscript(transcript) {
 
     if (!normalized || fillerWords.has(normalized)) {
       events.push({
-        type: "머뭇거림",
+        type: "첨가",
         source: "",
         transcript: rawToken,
-        description: "간투어 또는 끌기 표현으로 분리했습니다.",
-        scoreImpact: false,
-        guidance: "읽기 전 호흡을 정리하고 의미 단위로 천천히 시작하도록 지도합니다."
+        description: "원문에 없는 간투어 또는 음절 삽입으로 분류했습니다.",
+        scoreImpact: true,
+        errorSyllables: Math.max(countSyllables(normalized || rawToken), 1),
+        guidance: "간투어를 줄이고 문장을 시작하기 전 호흡을 정리하도록 지도합니다."
       });
       continue;
     }
@@ -326,6 +381,7 @@ function preprocessTranscript(transcript) {
         transcript: `${previous.raw} 아니 ${corrected}`,
         description: "처음 읽은 내용을 스스로 고쳐 읽었습니다. 최종 산출어를 기준으로 정렬합니다.",
         scoreImpact: false,
+        errorSyllables: 0,
         guidance: "자기점검 전략은 긍정적으로 보되, 처음 읽을 때의 정확성을 높이는 연습을 병행합니다."
       });
       tokens.push({ raw: corrected, normalized: normalizeToken(corrected) });
@@ -339,8 +395,9 @@ function preprocessTranscript(transcript) {
         type: "반복",
         source: "",
         transcript: rawToken,
-        description: `${repetition.subtype}으로 감지했습니다. 반복 부분을 제거한 뒤 정렬합니다.`,
-        scoreImpact: false,
+        description: `${repetition.subtype}으로 감지했습니다. 반복 음소/음절 개수와 관계없이 1회 오류로 처리하고, 반복 부분을 제거한 뒤 정렬합니다.`,
+        scoreImpact: true,
+        errorSyllables: 1,
         guidance: "짧은 구 단위 반복 읽기로 시작 지연과 부분어절 반복을 줄입니다."
       });
       tokens.push({ raw: repetition.normalized, normalized: normalizeToken(repetition.normalized) });
@@ -413,7 +470,6 @@ function compareTokens(passage, transcript) {
   const rows = [...events];
   let correctWords = 0;
   let pronunciationCount = 0;
-  let actualErrorCount = 0;
   let errorSyllables = 0;
 
   operations.forEach(({ op, source, transcript: read }) => {
@@ -426,67 +482,63 @@ function compareTokens(passage, transcript) {
       if (isPronunciationAllowed(source, read)) {
         correctWords += 1;
         pronunciationCount += 1;
-        rows.push({
-          type: "발음 허용",
-          source,
-          transcript: read,
-          description: "한국어 음운 변동 또는 허용 발음으로 판단해 오류 점수에서 제외했습니다.",
-          scoreImpact: false,
-          guidance: "자연스러운 발음 변화로 보되, 원문 표기와 발음 차이를 교사가 확인합니다."
-        });
         return;
       }
 
-      actualErrorCount += 1;
-      errorSyllables += countSyllables(source);
+      const replacement = classifyReplacement(source, read);
       rows.push({
-        type: "대치",
+        type: replacement.type,
         source,
         transcript: read,
-        description: "원문 어절을 다른 형태 또는 의미의 어절로 읽었습니다.",
+        description: replacement.description,
         scoreImpact: true,
-        guidance: "원문을 눈으로 확인하며 유사 낱말과 조사·어미를 변별하는 연습을 합니다."
+        errorSyllables: countSyllables(source),
+        guidance: replacement.guidance
       });
       return;
     }
 
     if (op === "delete") {
-      actualErrorCount += 1;
-      errorSyllables += countSyllables(source);
       rows.push({
         type: "생략",
         source,
         transcript: "",
         description: "원문에 있는 어절을 읽지 않은 것으로 정렬되었습니다.",
         scoreImpact: true,
+        errorSyllables: countSyllables(source),
         guidance: "손가락 짚기, 줄 따라 읽기, 어절 단위 끊어 읽기를 활용합니다."
       });
       return;
     }
 
-    actualErrorCount += 1;
-    errorSyllables += countSyllables(read);
     rows.push({
       type: "첨가",
       source: "",
       transcript: read,
       description: "원문에 없는 의미 있는 어절을 추가해 읽었습니다.",
       scoreImpact: true,
+      errorSyllables: countSyllables(read),
       guidance: "추측하여 읽지 않고 원문을 정확히 확인하도록 지도합니다."
     });
   });
 
+  errorSyllables = rows.reduce((sum, row) => {
+    return row.scoreImpact ? sum + (row.errorSyllables || 0) : sum;
+  }, 0);
+
   const counts = rows.reduce(
     (acc, row) => {
-      if (row.type === "발음 허용") acc.pronunciation += 1;
       if (row.type === "반복") acc.repetition += 1;
       if (row.type === "자기교정") acc.selfCorrection += 1;
-      if (row.type === "머뭇거림") acc.hesitation += 1;
       if (row.scoreImpact) acc[row.type] = (acc[row.type] || 0) + 1;
       return acc;
     },
-    { pronunciation: 0, repetition: 0, selfCorrection: 0, hesitation: 0 }
+    { repetition: 0, selfCorrection: 0 }
   );
+
+  const actualErrorCount = ["생략", "첨가", "대치", "반복"].reduce((sum, type) => {
+    return sum + (counts[type] || 0);
+  }, 0);
 
   return {
     rows,
@@ -496,8 +548,7 @@ function compareTokens(passage, transcript) {
       pronunciationCount,
       actualErrorCount,
       repetitionCount: counts.repetition,
-      selfCorrectionCount: counts.selfCorrection,
-      hesitationCount: counts.hesitation
+      selfCorrectionCount: counts.selfCorrection
     },
     counts,
     errorSyllables
@@ -522,7 +573,7 @@ function createReport({ formData, totalSyllables, errorSyllables, rate, comparis
   return [
     `다음은 ${passageTitle} 지문을 활용한 문단글 읽기 유창성 검사 결과 해석 예시이다.`,
     `${studentName}는 ${passageTitle} 지문을 읽는 과정에서 전체 문단 음절 수 ${totalSyllables}음절 중 ${errorSyllables}음절에서 점수 반영 오류를 보였으며, 전체 소요시간은 ${readingSecondsText}초였다. 이에 따라 10초당 정확하게 읽은 음절 수는 [(${totalSyllables}-${errorSyllables})/${readingSecondsText}]×10으로 산출되며, 약 ${rate}음절로 계산된다.`,
-    `정렬 분석 결과 전체 어절 ${summary.totalWords}개 중 정확하게 읽은 어절은 ${summary.correctWords}개이며, 발음 허용 ${summary.pronunciationCount}회, 실제 오류 ${summary.actualErrorCount}회, 반복 ${summary.repetitionCount}회, 자기교정 ${summary.selfCorrectionCount}회, 머뭇거림 ${summary.hesitationCount}회가 관찰되었다. 주요 오류 패턴은 ${mainErrorType}으로 요약된다.`
+    `정렬 분석 결과 전체 어절 ${summary.totalWords}개 중 정확하게 읽은 어절은 ${summary.correctWords}개이며, 발음 허용 ${summary.pronunciationCount}회, 실제 오류 ${summary.actualErrorCount}회, 반복 ${summary.repetitionCount}회, 자기교정 ${summary.selfCorrectionCount}회가 관찰되었다. 주요 오류 패턴은 ${mainErrorType}으로 요약된다.`
   ].join("\n ");
 }
 
@@ -590,7 +641,6 @@ function renderAnalysis(analysis) {
     <span>실제 오류 <strong>${analysis.summary.actualErrorCount}</strong></span>
     <span>반복 <strong>${analysis.summary.repetitionCount}</strong></span>
     <span>자기교정 <strong>${analysis.summary.selfCorrectionCount}</strong></span>
-    <span>머뭇거림 <strong>${analysis.summary.hesitationCount}</strong></span>
   `;
 
   errorTableBody.innerHTML = analysis.errorRows
