@@ -627,7 +627,8 @@ async function generateReportWithGpt(formData, analysis) {
   });
 
   if (!response.ok) {
-    throw new Error("GPT 보고서 생성 API를 사용할 수 없습니다.");
+    const error = await response.json().catch(() => ({}));
+    throw new Error([error.error, error.hint].filter(Boolean).join(" ") || "GPT 보고서 생성 API를 사용할 수 없습니다.");
   }
 
   const { reportText: generatedReport } = await response.json();
@@ -1028,6 +1029,8 @@ analyzeButton.addEventListener("click", async () => {
     }
   } catch (error) {
     console.warn(error);
+    saveMessage.textContent = `GPT 보고서 생성에 실패했습니다. ${error.message} 기본 보고서 초안을 사용합니다.`;
+    return;
   }
 
   saveMessage.textContent = "분석 결과가 생성되었습니다. GPT API 미설정 시 기본 보고서 초안을 사용합니다.";
