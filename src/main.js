@@ -442,12 +442,24 @@ function alignTokens(sourceTokens, readTokenObjects) {
   for (let i = 1; i < rows; i += 1) {
     for (let j = 1; j < cols; j += 1) {
       const similarity = tokenSimilarity(sourceTokens[i - 1], readTokens[j - 1]);
-      const replaceCost = similarity >= 0.72 ? 0.25 : similarity >= 0.45 ? 0.65 : 1.15;
+      const nextReadSimilarity = j < readTokens.length
+        ? tokenSimilarity(sourceTokens[i - 1], readTokens[j])
+        : 0;
+      const nextSourceSimilarity = i < sourceTokens.length
+        ? tokenSimilarity(sourceTokens[i], readTokens[j - 1])
+        : 0;
+      const replaceCost = similarity >= 0.72 ? 0.25 : similarity >= 0.45 ? 0.85 : 2.2;
+      const deleteCost = nextSourceSimilarity >= 0.72 ? 0.45 : 1;
+      const insertCost = nextReadSimilarity >= 0.72 ? 0.45 : 1;
       const candidates = [
         { value: dp[i - 1][j - 1] + replaceCost, op: "replace" },
-        { value: dp[i - 1][j] + 1, op: "delete" },
-        { value: dp[i][j - 1] + 1, op: "insert" }
-      ].sort((a, b) => a.value - b.value);
+        { value: dp[i - 1][j] + deleteCost, op: "delete" },
+        { value: dp[i][j - 1] + insertCost, op: "insert" }
+      ].sort((a, b) => {
+        if (a.value !== b.value) return a.value - b.value;
+        const priority = { replace: similarity >= 0.72 ? 0 : 2, insert: 1, delete: 1 };
+        return priority[a.op] - priority[b.op];
+      });
 
       dp[i][j] = candidates[0].value;
       back[i][j] = candidates[0].op;
