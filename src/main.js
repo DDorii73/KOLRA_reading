@@ -93,6 +93,19 @@ function countSyllables(text) {
   return (text.match(/[가-힣A-Za-z0-9]/g) || []).length;
 }
 
+function hasFinalConsonant(text) {
+  const lastChar = [...String(text || "").trim()].pop();
+  if (!lastChar) return false;
+  const code = lastChar.charCodeAt(0);
+  if (code < 0xac00 || code > 0xd7a3) return false;
+  return (code - 0xac00) % 28 !== 0;
+}
+
+function attachTopicParticle(name) {
+  const safeName = name || "학생 A";
+  return `${safeName}${hasFinalConsonant(safeName) ? "은" : "는"}`;
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -566,14 +579,15 @@ function getMainErrorType(analysisResult) {
 function createReport({ formData, totalSyllables, errorSyllables, rate, comparison }) {
   const mainErrorType = getMainErrorType(comparison);
   const studentName = formData.studentName || "학생 A";
+  const studentWithParticle = attachTopicParticle(studentName);
   const passageTitle = formData.passageTitle || "선택한 지문";
   const readingSecondsText = formData.seconds || "미입력";
   const summary = comparison.summary;
   const correctSyllables = Math.max(totalSyllables - errorSyllables, 0);
 
   return [
-    `다음은 ${passageTitle} 지문을 활용한 문단글 읽기 유창성 검사 결과 해석 예시이다.`,
-    `${studentName}는 ${passageTitle} 지문을 읽는 과정에서 전체 문단 음절 수 ${totalSyllables}음절 중 ${errorSyllables}음절에서 점수 반영 오류를 보였으며, 전체 소요시간은 ${readingSecondsText}초였다. 이에 따라 10초당 정확하게 읽은 음절 수는 [(${totalSyllables}-${errorSyllables})/${readingSecondsText}]×10으로 산출되며, 약 ${rate}음절로 계산된다.`,
+    `다음은 ${passageTitle} 지문을 활용한 문단글 읽기 유창성 검사 결과 해석이다.`,
+    `${studentWithParticle} ${passageTitle} 지문을 읽는 과정에서 전체 문단 음절 수 ${totalSyllables}음절 중 ${errorSyllables}음절에서 점수 반영 오류를 보였으며, 전체 소요시간은 ${readingSecondsText}초였다. 이에 따라 10초당 정확하게 읽은 음절 수는 [(${totalSyllables}-${errorSyllables})/${readingSecondsText}]×10으로 산출되며, 약 ${rate}음절로 계산된다.`,
     `정렬 분석 결과 전체 음절 ${totalSyllables}개 중 정확하게 읽은 음절은 ${correctSyllables}개이며, 발음 허용 ${summary.pronunciationCount}회, 실제 오류 ${summary.actualErrorCount}회, 반복 ${summary.repetitionCount}회, 자기교정 ${summary.selfCorrectionCount}회가 관찰되었다. 주요 오류 패턴은 ${mainErrorType}으로 요약된다.`
   ].join("\n ");
 }
