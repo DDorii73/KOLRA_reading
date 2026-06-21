@@ -736,7 +736,43 @@ async function requestTranscriptionFromServer() {
   // Do not persist the original recording file in Firebase Storage or Firestore.
   if (liveTranscript.trim()) return liveTranscript.trim();
   if (!recordedChunks.length) return "";
-  return "";
+  const audioBlob = new Blob(recordedChunks, { type: mediaRecorder?.mimeType || "audio/webm" });
+  return transcribeAudioFile(new File([audioBlob], "browser-recording.webm", { type: audioBlob.type }));
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const result = String(reader.result || "");
+      resolve(result.split(",")[1] || "");
+    });
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function transcribeAudioFile(file) {
+  const audioBase64 = await fileToBase64(file);
+  const response = await fetch("/.netlify/functions/transcribe-audio", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      audioBase64,
+      fileName: file.name,
+      mimeType: file.type || "audio/webm"
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "오디오 전사 API를 사용할 수 없습니다.");
+  }
+
+  const { text } = await response.json();
+  return text?.trim() || "";
 }
 
 function createSpeechRecognition() {
@@ -944,13 +980,30 @@ convertRecordingButton.addEventListener("click", async () => {
   recordStatus.textContent = "현재 브라우저 전사 결과가 없습니다. Chrome에서 다시 녹음하거나 STT 전사 txt 파일을 업로드해 주세요.";
 });
 
-convertUploadedAudioButton.addEventListener("click", () => {
+convertUploadedAudioButton.addEventListener("click", async () => {
   if (!uploadedAudioFile) {
     audioUploadStatus.textContent = "먼저 녹음파일을 업로드해 주세요.";
     return;
   }
 
-  audioUploadStatus.textContent = "업로드 녹음파일의 텍스트 변환은 서버 STT 연동 후 실행됩니다. 현재는 미리듣기와 파일 확인만 지원합니다.";
+  try {
+    convertUploadedAudioButton.disabled = true;
+    audioUploadStatus.textContent = "업로드 녹음파일을 텍스트로 변환하는 중입니다.";
+    const transcript = await transcribeAudioFile(uploadedAudioFile);
+
+    if (!transcript) {
+      audioUploadStatus.textContent = "전사 결과가 비어 있습니다. 녹음 품질이나 파일 형식을 확인해 주세요.";
+      return;
+    }
+
+    transcriptInput.value = transcript;
+    audioUploadStatus.textContent = "업로드 녹음파일의 전사 결과를 전사 텍스트 영역에 반영했습니다.";
+  } catch (error) {
+    console.error(error);
+    audioUploadStatus.textContent = "오디오 전사에 실패했습니다. Netlify의 OPENAI_API_KEY 설정과 파일 크기를 확인해 주세요.";
+  } finally {
+    convertUploadedAudioButton.disabled = false;
+  }
 });
 
 analyzeButton.addEventListener("click", async () => {
