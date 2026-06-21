@@ -1,3 +1,12 @@
+function getOpenAiApiKey() {
+  return (
+    process.env.OPENAI_API_KEY ||
+    process.env.VITE_OPENAI_API_KEY ||
+    process.env.OPENAI_KEY ||
+    ""
+  ).trim();
+}
+
 export async function handler(event) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -18,13 +27,16 @@ export async function handler(event) {
     };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = getOpenAiApiKey();
 
   if (!apiKey) {
     return {
       statusCode: 501,
       headers,
-      body: JSON.stringify({ error: "OPENAI_API_KEY is not configured." })
+      body: JSON.stringify({
+        error: "OpenAI API key is not configured for this Netlify Function.",
+        hint: "Set OPENAI_API_KEY in Netlify Environment variables for Functions/Production, then redeploy."
+      })
     };
   }
 

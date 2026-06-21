@@ -768,7 +768,7 @@ async function transcribeAudioFile(file) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || "오디오 전사 API를 사용할 수 없습니다.");
+    throw new Error([error.error, error.hint].filter(Boolean).join(" ") || "오디오 전사 API를 사용할 수 없습니다.");
   }
 
   const { text } = await response.json();
@@ -1000,7 +1000,7 @@ convertUploadedAudioButton.addEventListener("click", async () => {
     audioUploadStatus.textContent = "업로드 녹음파일의 전사 결과를 전사 텍스트 영역에 반영했습니다.";
   } catch (error) {
     console.error(error);
-    audioUploadStatus.textContent = "오디오 전사에 실패했습니다. Netlify의 OPENAI_API_KEY 설정과 파일 크기를 확인해 주세요.";
+    audioUploadStatus.textContent = `오디오 전사에 실패했습니다. ${error.message}`;
   } finally {
     convertUploadedAudioButton.disabled = false;
   }
