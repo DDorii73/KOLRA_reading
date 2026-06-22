@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문단글 읽기 유창성 검사 보조 Web-app</title>
+  <link rel="stylesheet" href="/src/styles.css">
+  <script type="module" src="/src/index.js" defer></script>
+</head>
+<body>
+  <header class="landing-header">
+    <a class="landing-brand" href="index.html" aria-label="Reading Fluency Assistant 홈">
+      <span class="landing-logo">R</span>
+      <span>Reading Fluency Assistant</span>
+    </a>
+  </header>
+
+  <main class="landing-main">
+    <section class="hero landing-hero">
+      <div class="hero-copy">
+        <h1>문단글 읽기 유창성 검사 보조 Web-app</h1>
+
+        <div class="auth-panel" aria-live="polite">
+          <p class="auth-message" id="authMessage">교사 로그인이 필요합니다.</p>
+          <p class="teacher-profile" id="teacherProfile" hidden></p>
+          <div class="hero-actions">
+            <button class="button primary" id="googleLoginButton" type="button">Google 로그인</button>
+            <button class="button ghost" id="logoutButton" type="button" hidden>로그아웃</button>
+          </div>
+        </div>
+
+        <div class="teacher-actions" id="teacherActions" hidden>
+          <a class="button primary" href="student.html">
+            <span>문단글읽기 유창성 기록</span>
+            <small>학생 검사 자료 입력 및 분석</small>
+          </a>
+          <a class="button ghost" href="teacherMonitor.html">
+            <span>교사 모니터링</span>
+            <small>학생별 검사 결과 확인</small>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

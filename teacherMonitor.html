@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>교사 모니터링 | 문단글 읽기 유창성</title>
+  <link rel="stylesheet" href="src/styles.css">
+  <script type="module" src="src/admin.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="page-intro monitor-intro">
+      <div>
+        <p class="eyebrow">Teacher Dashboard</p>
+        <h1>교사 모니터링</h1>
+        <p>
+          저장된 학생별 문단글 읽기 유창성 검사 결과를 검색하고, 개별 분석 표와
+          보고서를 확인하는 페이지입니다.
+        </p>
+      </div>
+      <a class="button ghost" href="index.html">메인 화면으로 돌아가기</a>
+    </section>
+
+    <section class="panel wide-panel" aria-labelledby="search-title">
+      <div class="panel-header">
+        <div>
+          <p class="section-kicker">Search</p>
+          <h2 id="search-title">학생 검색 영역</h2>
+        </div>
+        <button class="button primary" id="refreshResultsButton" type="button">결과 새로고침</button>
+      </div>
+      <div class="form-grid">
+        <label>
+          학생 이름 검색
+          <input id="studentNameSearch" type="search" placeholder="예: 김민준">
+        </label>
+        <label>
+          검사 날짜 검색
+          <input id="testDateSearch" type="date">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel wide-panel" aria-labelledby="monitor-table-title">
+      <div class="panel-header">
+        <div>
+          <p class="section-kicker">Saved Results</p>
+          <h2 id="monitor-table-title">검사 결과 목록</h2>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>학생 이름</th>
+              <th>검사 날짜</th>
+              <th>읽기 속도</th>
+              <th>최종 점수</th>
+              <th>주요 오류 유형</th>
+              <th>상세 보기</th>
+            </tr>
+          </thead>
+          <tbody id="monitorTableBody">
+            <tr>
+              <td colspan="6">저장된 결과를 불러오면 이곳에 표시됩니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel wide-panel report-preview" aria-labelledby="detail-title">
+      <div class="panel-header">
+        <div>
+          <p class="section-kicker">Detail</p>
+          <h2 id="detail-title">상세 보기 영역</h2>
+        </div>
+      </div>
+      <article id="selectedDetail" class="report-paper">
+        <p>검사 결과 목록에서 상세 보기 버튼을 누르면 학생 개별 분석 표와 학생 개별 보고서가 표시됩니다.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
