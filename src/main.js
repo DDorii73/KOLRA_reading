@@ -324,6 +324,16 @@ function classifyReplacement(sourceToken, readToken) {
   };
 }
 
+function getReplacementCost(similarity) {
+  if (similarity === 1) return 0;
+  if (similarity >= 0.55) return 1;
+  return 3.5;
+}
+
+function joinTokenSpan(tokens, start, end) {
+  return tokens.slice(start, end).join(" ");
+}
+
 function detectLeadingRepetition(token) {
   const normalized = String(token ?? "").replace(/[~\-—–]+/g, "");
   const jamoMatch = normalized.match(/^([ㄱ-ㅎ])\1+(.*)$/);
@@ -427,16 +437,17 @@ function alignTokens(sourceTokens, readTokenObjects) {
   const readTokens = readTokenObjects.map((item) => item.raw);
   const rows = sourceTokens.length + 1;
   const cols = readTokens.length + 1;
+  const maxGroupSize = 3;
   const dp = Array.from({ length: rows }, () => Array(cols).fill(0));
   const back = Array.from({ length: rows }, () => Array(cols).fill(null));
 
   for (let i = 1; i < rows; i += 1) {
     dp[i][0] = i;
-    back[i][0] = "delete";
+    back[i][0] = { op: "delete", sourceSpan: 1, readSpan: 0 };
   }
   for (let j = 1; j < cols; j += 1) {
     dp[0][j] = j;
-    back[0][j] = "insert";
+    back[0][j] = { op: "insert", sourceSpan: 0, readSpan: 1 };
   }
 
   for (let i = 1; i < rows; i += 1) {
@@ -444,21 +455,50 @@ function alignTokens(sourceTokens, readTokenObjects) {
       const similarity = tokenSimilarity(sourceTokens[i - 1], readTokens[j - 1]);
       const isExactOrAllowed = similarity === 1;
       const isSimilarReplacement = similarity >= 0.55;
-      const replaceCost = isExactOrAllowed ? 0 : isSimilarReplacement ? 1 : 3.5;
+      const replaceCost = getReplacementCost(similarity);
       const deleteCost = 1;
       const insertCost = 1;
       const candidates = [
-        { value: dp[i - 1][j - 1] + replaceCost, op: "replace" },
-        { value: dp[i - 1][j] + deleteCost, op: "delete" },
-        { value: dp[i][j - 1] + insertCost, op: "insert" }
-      ].sort((a, b) => {
+        { value: dp[i - 1][j - 1] + replaceCost, op: "replace", sourceSpan: 1, readSpan: 1, similarity },
+        { value: dp[i - 1][j] + deleteCost, op: "delete", sourceSpan: 1, readSpan: 0, similarity: 0 },
+        { value: dp[i][j - 1] + insertCost, op: "insert", sourceSpan: 0, readSpan: 1, similarity: 0 }
+      ];
+
+      for (let readSpan = 2; readSpan <= Math.min(maxGroupSize, j); readSpan += 1) {
+        const combinedRead = joinTokenSpan(readTokens, j - readSpan, j);
+        const groupedSimilarity = tokenSimilarity(sourceTokens[i - 1], combinedRead);
+        candidates.push({
+          value: dp[i - 1][j - readSpan] + getReplacementCost(groupedSimilarity),
+          op: "replace",
+          sourceSpan: 1,
+          readSpan,
+          similarity: groupedSimilarity
+        });
+      }
+
+      for (let sourceSpan = 2; sourceSpan <= Math.min(maxGroupSize, i); sourceSpan += 1) {
+        const combinedSource = joinTokenSpan(sourceTokens, i - sourceSpan, i);
+        const groupedSimilarity = tokenSimilarity(combinedSource, readTokens[j - 1]);
+        candidates.push({
+          value: dp[i - sourceSpan][j - 1] + getReplacementCost(groupedSimilarity),
+          op: "replace",
+          sourceSpan,
+          readSpan: 1,
+          similarity: groupedSimilarity
+        });
+      }
+
+      candidates.sort((a, b) => {
         if (a.value !== b.value) return a.value - b.value;
-        const priority = { replace: isExactOrAllowed || isSimilarReplacement ? 0 : 2, insert: 1, delete: 1 };
+        const aIsUsefulReplace = a.op === "replace" && a.similarity >= 0.55;
+        const bIsUsefulReplace = b.op === "replace" && b.similarity >= 0.55;
+        const priority = { replace: 0, insert: 1, delete: 1 };
+        if (aIsUsefulReplace !== bIsUsefulReplace) return aIsUsefulReplace ? -1 : 1;
         return priority[a.op] - priority[b.op];
       });
 
       dp[i][j] = candidates[0].value;
-      back[i][j] = candidates[0].op;
+      back[i][j] = candidates[0];
     }
   }
 
@@ -467,17 +507,25 @@ function alignTokens(sourceTokens, readTokenObjects) {
   let j = readTokens.length;
 
   while (i > 0 || j > 0) {
-    const op = back[i][j];
-    if (op === "replace") {
-      operations.unshift({ op, source: sourceTokens[i - 1], transcript: readTokens[j - 1] });
-      i -= 1;
-      j -= 1;
-    } else if (op === "delete") {
-      operations.unshift({ op, source: sourceTokens[i - 1], transcript: "" });
-      i -= 1;
+    const step = back[i][j];
+    if (!step) break;
+
+    if (step.op === "replace") {
+      const sourceStart = i - step.sourceSpan;
+      const readStart = j - step.readSpan;
+      operations.unshift({
+        op: "replace",
+        source: joinTokenSpan(sourceTokens, sourceStart, i),
+        transcript: joinTokenSpan(readTokens, readStart, j)
+      });
+      i -= step.sourceSpan;
+      j -= step.readSpan;
+    } else if (step.op === "delete") {
+      operations.unshift({ op: "delete", source: sourceTokens[i - 1], transcript: "" });
+      i -= step.sourceSpan;
     } else {
       operations.unshift({ op: "insert", source: "", transcript: readTokens[j - 1] });
-      j -= 1;
+      j -= step.readSpan;
     }
   }
 
